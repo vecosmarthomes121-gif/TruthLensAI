@@ -145,13 +145,15 @@ Deno.serve(async (req) => {
 **Image URL:** ${mediaUrl}
 
 Perform a comprehensive forensic analysis:
-1. Detect if this image is AI-generated (look for typical AI artifacts, unnatural patterns, inconsistencies)
-2. Check for photo manipulation or editing (cloning, compositing, color adjustments)
-3. Assess overall authenticity
-4. Identify any suspicious elements
+1. Provide a short, descriptive name for this image (max 8 words) - describe what you see
+2. Detect if this image is AI-generated (look for typical AI artifacts, unnatural patterns, inconsistencies)
+3. Check for photo manipulation or editing (cloning, compositing, color adjustments)
+4. Assess overall authenticity
+5. Identify any suspicious elements
 
 Provide a JSON response:
 {
+  "imageName": "<short descriptive name, e.g. 'Man standing on tree', 'City skyline at sunset'>",
   "isAiGenerated": <true|false>,
   "aiGenerationConfidence": <0-100>,
   "manipulationDetected": <true|false>,
@@ -250,8 +252,13 @@ Return ONLY the JSON object.`;
         }
       };
 
-      // Update claim to include image analysis context for web search
-      analyzedClaim = claim; // Use original claim for searching
+      // Use AI-generated descriptive name instead of URL
+      if (imageAnalysis.imageName) {
+        analyzedClaim = imageAnalysis.imageName;
+        console.log(`✓ Generated image name: ${analyzedClaim}`);
+      } else {
+        analyzedClaim = 'Image verification'; // Fallback
+      }
       console.log('✓ Image analysis complete, proceeding to web verification');
     }
 
@@ -753,7 +760,7 @@ Return ONLY the JSON object, no other text.`;
       .from('verifications')
       .insert({
         user_id: userId,
-        claim,
+        claim: analyzedClaim, // Use descriptive name for images/videos instead of URL
         input_type: inputType,
         truth_score: result.truthScore,
         status: result.status,
@@ -775,7 +782,7 @@ Return ONLY the JSON object, no other text.`;
     // Update trending claims (async, don't wait)
     supabaseAdmin
       .rpc('increment_trending_claim', {
-        claim_text: claim,
+        claim_text: analyzedClaim, // Use descriptive name for images/videos
         score: result.truthScore,
         claim_status: result.status
       })
