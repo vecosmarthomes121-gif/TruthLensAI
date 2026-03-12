@@ -8,70 +8,93 @@ interface ShareCardProps {
 
 export default function ShareCard({ result }: ShareCardProps) {
   const statusConfig = {
-    'true': { color: 'bg-green-500', icon: CheckCircle, text: 'TRUE' },
-    'mostly-true': { color: 'bg-green-400', icon: CheckCircle, text: 'MOSTLY TRUE' },
-    'disputed': { color: 'bg-yellow-500', icon: AlertTriangle, text: 'DISPUTED' },
-    'mostly-false': { color: 'bg-orange-500', icon: XCircle, text: 'MOSTLY FALSE' },
-    'false': { color: 'bg-red-500', icon: XCircle, text: 'FALSE' },
+    'true': { color: 'bg-green-500', gradient: 'from-green-400 to-green-600', text: 'TRUE' },
+    'mostly-true': { color: 'bg-green-400', gradient: 'from-green-300 to-green-500', text: 'MOSTLY TRUE' },
+    'disputed': { color: 'bg-yellow-500', gradient: 'from-yellow-400 to-orange-500', text: 'DISPUTED' },
+    'mostly-false': { color: 'bg-orange-500', gradient: 'from-orange-400 to-red-500', text: 'MOSTLY FALSE' },
+    'false': { color: 'bg-red-500', gradient: 'from-red-400 to-red-600', text: 'FALSE' },
   };
 
   const config = statusConfig[result.status];
-  const StatusIcon = config.icon;
 
   return (
-    <div className="w-[1200px] h-[630px] bg-gradient-to-br from-blue-50 via-white to-purple-50 p-12 flex flex-col justify-between relative overflow-hidden">
+    <div className="w-[1080px] h-[1080px] bg-gradient-to-br from-slate-900 via-blue-900 to-purple-900 p-16 flex flex-col justify-between relative overflow-hidden">
       {/* Background Pattern */}
-      <div className="absolute inset-0 opacity-5">
-        <div className="absolute top-0 right-0 w-96 h-96 bg-gradient-to-br from-blue-600 to-purple-600 rounded-full blur-3xl"></div>
-        <div className="absolute bottom-0 left-0 w-96 h-96 bg-gradient-to-tr from-purple-600 to-blue-600 rounded-full blur-3xl"></div>
+      <div className="absolute inset-0 opacity-20">
+        <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-gradient-to-br from-blue-400 to-purple-400 rounded-full blur-3xl"></div>
+        <div className="absolute bottom-0 left-0 w-[600px] h-[600px] bg-gradient-to-tr from-purple-400 to-pink-400 rounded-full blur-3xl"></div>
       </div>
+      <div className="absolute inset-0" style={{ backgroundImage: 'radial-gradient(circle at 2px 2px, rgba(255,255,255,0.15) 1px, transparent 0)', backgroundSize: '40px 40px' }}></div>
 
       {/* Content */}
       <div className="relative z-10">
         {/* Header */}
-        <div className="flex items-center gap-3 mb-8">
-          <div className="h-16 w-16 rounded-2xl bg-gradient-to-br from-blue-600 to-purple-600 flex items-center justify-center shadow-lg">
-            <Shield className="h-9 w-9 text-white" />
-          </div>
-          <div>
-            <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-              TruthLens AI
-            </h1>
-            <p className="text-gray-600 text-lg">AI-Powered Fact Verification</p>
+        <div className="flex items-center justify-between mb-12">
+          <div className="flex items-center gap-4">
+            <div className="h-24 w-24 rounded-3xl bg-white/10 backdrop-blur-sm border-2 border-white/20 flex items-center justify-center shadow-2xl">
+              <Shield className="h-14 w-14 text-white" />
+            </div>
+            <div>
+              <h1 className="text-5xl font-black text-white tracking-tight">
+                TruthLens AI
+              </h1>
+              <p className="text-white/80 text-2xl font-medium mt-1">Fact Verification Engine</p>
+            </div>
           </div>
         </div>
 
-        {/* Truth Score */}
-        <div className="flex items-center gap-8 mb-8">
-          <div className="flex flex-col items-center">
-            <div className={cn(
-              "w-40 h-40 rounded-full flex items-center justify-center shadow-2xl",
-              config.color
-            )}>
-              <div className="text-center">
-                <div className="text-6xl font-bold text-white">{result.truthScore}</div>
-                <div className="text-xl text-white/90">%</div>
-              </div>
-            </div>
-            <div className="mt-4 flex items-center gap-2">
-              <StatusIcon className="h-6 w-6 text-gray-700" />
-              <span className="text-xl font-bold text-gray-800">{config.text}</span>
-            </div>
-          </div>
-
+        {/* Main Content Area */}
+        <div className="flex-1 flex flex-col justify-center mb-12">
           {/* Claim */}
-          <div className="flex-1">
-            <h2 className="text-4xl font-bold text-gray-900 leading-tight mb-4 line-clamp-3">
+          <div className="mb-12">
+            <div className="inline-block px-6 py-2 bg-white/10 backdrop-blur-sm border border-white/20 rounded-full mb-6">
+              <span className="text-white/90 text-xl font-medium">CLAIM VERIFICATION</span>
+            </div>
+            <h2 className="text-5xl font-black text-white leading-tight mb-8 line-clamp-4">
               "{result.claim}"
             </h2>
-            <div className="flex items-center gap-6 text-gray-600">
-              <div className="flex items-center gap-2">
-                <div className="w-3 h-3 rounded-full bg-blue-600"></div>
-                <span className="text-lg">{result.sources.length} Sources Verified</span>
+          </div>
+
+          {/* Truth Score - Centered & Large */}
+          <div className="flex items-center justify-center gap-12">
+            <div className="relative">
+              <div className={cn(
+                "w-72 h-72 rounded-full flex items-center justify-center shadow-2xl bg-gradient-to-br",
+                config.gradient
+              )}>
+                <div className="w-64 h-64 rounded-full bg-white/10 backdrop-blur-sm flex items-center justify-center border-4 border-white/30">
+                  <div className="text-center">
+                    <div className="text-9xl font-black text-white">{result.truthScore}</div>
+                    <div className="text-4xl text-white/90 font-bold">%</div>
+                  </div>
+                </div>
               </div>
-              <div className="flex items-center gap-2">
-                <div className="w-3 h-3 rounded-full bg-purple-600"></div>
-                <span className="text-lg">Real-time AI Analysis</span>
+              <div className="absolute -bottom-8 left-1/2 transform -translate-x-1/2 whitespace-nowrap">
+                <div className="px-8 py-4 bg-white rounded-2xl shadow-2xl">
+                  <span className="text-3xl font-black bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">{config.text}</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Stats */}
+            <div className="space-y-6">
+              <div className="flex items-center gap-4">
+                <div className="w-16 h-16 rounded-2xl bg-white/10 backdrop-blur-sm border border-white/20 flex items-center justify-center">
+                  <CheckCircle className="h-8 w-8 text-white" />
+                </div>
+                <div>
+                  <div className="text-4xl font-bold text-white">{result.sources.length}</div>
+                  <div className="text-xl text-white/80">Sources Verified</div>
+                </div>
+              </div>
+              <div className="flex items-center gap-4">
+                <div className="w-16 h-16 rounded-2xl bg-white/10 backdrop-blur-sm border border-white/20 flex items-center justify-center">
+                  <Shield className="h-8 w-8 text-white" />
+                </div>
+                <div>
+                  <div className="text-4xl font-bold text-white">AI</div>
+                  <div className="text-xl text-white/80">Powered Analysis</div>
+                </div>
               </div>
             </div>
           </div>
@@ -79,10 +102,13 @@ export default function ShareCard({ result }: ShareCardProps) {
       </div>
 
       {/* Footer */}
-      <div className="relative z-10 border-t-2 border-gray-200 pt-6">
-        <p className="text-gray-600 text-xl text-center">
-          Verify any claim at <span className="font-bold text-blue-600">TruthLens.AI</span> • Powered by OnSpace AI
-        </p>
+      <div className="relative z-10 border-t-2 border-white/20 pt-8">
+        <div className="text-center">
+          <p className="text-white/90 text-3xl font-medium">
+            Verify any claim at <span className="font-black text-white">TruthLens.AI</span>
+          </p>
+          <p className="text-white/60 text-xl mt-2">Powered by OnSpace AI • Real-time Web Search</p>
+        </div>
       </div>
     </div>
   );

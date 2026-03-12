@@ -130,6 +130,10 @@ Deno.serve(async (req) => {
       day: 'numeric' 
     });
 
+    // Initialize variables for content analysis
+    let contentAnalysis: any = null;
+    let analyzedClaim = claim;
+
     // Step 0: Handle image verification if input type is image
     if (inputType === 'image' && mediaUrl) {
       console.log('Step 0: Analyzing image for AI generation, manipulation, and authenticity...');
@@ -246,8 +250,9 @@ Return ONLY the JSON object.`;
         }
       };
 
-      // Update claim to include image analysis context
-      analyzedClaim = `Image Analysis: ${claim}. AI Generated: ${imageAnalysis.isAiGenerated ? 'Yes' : 'No'} (${imageAnalysis.aiGenerationConfidence}% confidence). Manipulation: ${imageAnalysis.manipulationDetected ? 'Yes' : 'No'}. Authenticity Score: ${imageAnalysis.authenticityScore}%.`;
+      // Update claim to include image analysis context for web search
+      analyzedClaim = claim; // Use original claim for searching
+      console.log('✓ Image analysis complete, proceeding to web verification');
     }
 
     // Step 0.5: Handle video verification if input type is video
@@ -363,8 +368,6 @@ Return ONLY the JSON object.`;
     }
 
     // Step 1: If URL input, fetch and analyze the content first
-    let contentAnalysis = null;
-    let analyzedClaim = claim;
     
     if (inputType === 'url' && claim.startsWith('http')) {
       console.log('Step 1: Fetching URL content...');

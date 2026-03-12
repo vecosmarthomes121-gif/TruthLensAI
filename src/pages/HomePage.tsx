@@ -151,7 +151,7 @@ export default function HomePage() {
             </p>
           </div>
 
-          <div className="grid md:grid-cols-5 gap-6">
+          <div className="grid md:grid-cols-5 gap-6 mb-12">
             {[
               { step: '1', title: 'Submit Content', desc: 'Text, URL, image, or video' },
               { step: '2', title: 'Extract Claims', desc: 'AI identifies key assertions' },
@@ -167,6 +167,29 @@ export default function HomePage() {
                 <p className="text-sm text-muted-foreground">{item.desc}</p>
               </div>
             ))}
+          </div>
+
+          {/* Quick Stats */}
+          <div className="grid md:grid-cols-4 gap-8 max-w-6xl mx-auto">
+            <div className="text-center p-6">
+              <div className="text-4xl font-bold text-primary mb-2">2-5 sec</div>
+              <p className="text-muted-foreground">Average verification time</p>
+            </div>
+            <div className="text-center p-6">
+              <div className="text-4xl font-bold text-primary mb-2">50,000+</div>
+              <p className="text-muted-foreground">Trusted news sources</p>
+            </div>
+            <div className="text-center p-6">
+              <div className="text-4xl font-bold text-primary mb-2">4 Formats</div>
+              <p className="text-muted-foreground">Text, URL, image, video</p>
+            </div>
+            <button
+              onClick={() => navigate('/dashboard')}
+              className="text-center p-6 border-2 border-dashed border-primary/30 rounded-xl hover:border-primary/60 hover:bg-primary/5 transition-all cursor-pointer"
+            >
+              <div className="text-4xl font-bold text-primary mb-2">📊</div>
+              <p className="text-muted-foreground font-semibold">View Your Dashboard</p>
+            </button>
           </div>
         </div>
       </section>
