@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { Shield, Menu, X, LogOut, User } from 'lucide-react';
+import { Shield, Menu, X, LogOut, User, TrendingUp, History, BarChart3, Users } from 'lucide-react';
 import { useState } from 'react';
 import { useAuth } from '@/stores/authStore';
 import { authService } from '@/lib/auth';
@@ -46,9 +46,14 @@ export default function Header() {
               Trending
             </Link>
             {user && (
-              <Link to="/dashboard" className="text-sm font-medium text-foreground/80 hover:text-foreground transition-colors">
-                Dashboard
-              </Link>
+              <>
+                <Link to="/dashboard" className="text-sm font-medium text-foreground/80 hover:text-foreground transition-colors">
+                  Dashboard
+                </Link>
+                <Link to="/teams" className="text-sm font-medium text-foreground/80 hover:text-foreground transition-colors">
+                  Teams
+                </Link>
+              </>
             )}
             <Link to="/history" className="text-sm font-medium text-foreground/80 hover:text-foreground transition-colors">
               History
@@ -113,13 +118,22 @@ export default function Header() {
                 Trending
               </Link>
               {user && (
-                <Link 
-                  to="/dashboard" 
-                  className="text-sm font-medium text-foreground/80 hover:text-foreground py-2"
-                  onClick={() => setMobileMenuOpen(false)}
-                >
-                  Dashboard
-                </Link>
+                <>
+                  <Link 
+                    to="/dashboard" 
+                    className="text-sm font-medium text-foreground/80 hover:text-foreground py-2"
+                    onClick={() => setMobileMenuOpen(false)}
+                  >
+                    Dashboard
+                  </Link>
+                  <Link 
+                    to="/teams" 
+                    className="text-sm font-medium text-foreground/80 hover:text-foreground py-2"
+                    onClick={() => setMobileMenuOpen(false)}
+                  >
+                    Teams
+                  </Link>
+                </>
               )}
               <Link 
                 to="/history" 

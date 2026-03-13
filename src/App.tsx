@@ -9,6 +9,8 @@ import ResultPage from '@/pages/ResultPage';
 import TrendingPage from '@/pages/TrendingPage';
 import HistoryPage from '@/pages/HistoryPage';
 import DashboardPage from '@/pages/DashboardPage';
+import TeamsPage from '@/pages/TeamsPage';
+import TeamDetailPage from '@/pages/TeamDetailPage';
 import NotFoundPage from '@/pages/NotFoundPage';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/stores/authStore';
@@ -60,6 +62,8 @@ function App() {
             <Route path="/result/:id" element={<ResultPage />} />
             <Route path="/trending" element={<TrendingPage />} />
             <Route path="/dashboard" element={<DashboardPage />} />
+          <Route path="/teams" element={<TeamsPage />} />
+          <Route path="/teams/:teamId" element={<TeamDetailPage />} />
             <Route path="/history" element={<HistoryPage />} />
             <Route path="*" element={<NotFoundPage />} />
           </Routes>

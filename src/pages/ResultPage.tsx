@@ -5,7 +5,8 @@ import { VerificationResult } from '@/types';
 import TruthScore from '@/components/features/TruthScore';
 import SourceCard from '@/components/features/SourceCard';
 import ShareCard from '@/components/features/ShareCard';
-import { Share2, ArrowLeft, FileText, ExternalLink, Link as LinkIcon, Image as ImageIcon, Video as VideoIcon, FileText as ArticleIcon, Download, Loader2, AlertTriangle, CheckCircle, XCircle, Video } from 'lucide-react';
+import VerificationComments from '@/components/features/VerificationComments';
+import { Share2, ArrowLeft, FileText, ExternalLink, Link as LinkIcon, Image as ImageIcon, Video as VideoIcon, FileText as ArticleIcon, Download, Loader2, AlertTriangle, CheckCircle, XCircle, Video, Users } from 'lucide-react';
 import { formatDate } from '@/lib/utils';
 import { toast } from 'sonner';
 import html2canvas from 'html2canvas';
@@ -465,6 +466,9 @@ export default function ResultPage() {
             </div>
           </div>
         )}
+
+        {/* Team Comments Section */}
+        <VerificationComments verificationId={result.id} />
 
         {/* CTA */}
         <div className="mt-12 text-center bg-muted/50 rounded-xl p-8">
