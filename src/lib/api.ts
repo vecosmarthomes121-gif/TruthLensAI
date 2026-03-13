@@ -125,3 +125,27 @@ export const getTrendingClaims = async () => {
     category: t.category,
   }));
 };
+
+export const deleteVerification = async (id: string): Promise<void> => {
+  const { error } = await supabase
+    .from('verifications')
+    .delete()
+    .eq('id', id);
+
+  if (error) {
+    console.error('Failed to delete verification:', error);
+    throw new Error('Failed to delete verification');
+  }
+};
+
+export const deleteAllVerifications = async (): Promise<void> => {
+  const { error } = await supabase
+    .from('verifications')
+    .delete()
+    .neq('id', '00000000-0000-0000-0000-000000000000'); // Delete all user's verifications
+
+  if (error) {
+    console.error('Failed to delete all verifications:', error);
+    throw new Error('Failed to delete verification history');
+  }
+};

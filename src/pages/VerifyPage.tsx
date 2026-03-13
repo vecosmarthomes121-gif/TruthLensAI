@@ -3,6 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import VerificationInput from '@/components/features/VerificationInput';
 import { InputType } from '@/types';
 import { verifyClaimWithAI } from '@/lib/api';
+import { notificationService } from '@/lib/notifications';
 import { Sparkles } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -26,6 +27,16 @@ export default function VerifyPage() {
     try {
       const result = await verifyClaimWithAI(input, type, mediaUrl);
       console.log('AI verification complete:', result);
+      
+      // Notify for media verification completion
+      if ((type === 'image' || type === 'video') && notificationService.isEnabled()) {
+        await notificationService.notifyMediaVerificationComplete(
+          type,
+          result.truthScore,
+          result.status
+        );
+      }
+      
       toast.success('Verification complete!');
       navigate(`/result/${result.id}`);
     } catch (error: any) {

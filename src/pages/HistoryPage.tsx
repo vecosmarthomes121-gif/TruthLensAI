@@ -1,14 +1,16 @@
 import { useState, useEffect } from 'react';
-import { getVerificationHistory } from '@/lib/api';
+import { getVerificationHistory, deleteVerification, deleteAllVerifications } from '@/lib/api';
 import { VerificationResult } from '@/types';
 import HistoryCard from '@/components/features/HistoryCard';
-import { History, Trash2 } from 'lucide-react';
+import { History, Trash2, AlertTriangle } from 'lucide-react';
 import { useAuth } from '@/stores/authStore';
 import { toast } from 'sonner';
 
 export default function HistoryPage() {
   const [history, setHistory] = useState<VerificationResult[]>([]);
   const [loading, setLoading] = useState(true);
+  const [showDeleteAllConfirm, setShowDeleteAllConfirm] = useState(false);
+  const [deletingAll, setDeletingAll] = useState(false);
   const { user } = useAuth();
 
   useEffect(() => {
@@ -29,8 +31,30 @@ export default function HistoryPage() {
     }
   };
 
-  const handleClearHistory = () => {
-    toast.info('History management coming soon!');
+  const handleDeleteItem = async (id: string) => {
+    try {
+      await deleteVerification(id);
+      setHistory(prev => prev.filter(item => item.id !== id));
+      toast.success('Verification deleted');
+    } catch (error: any) {
+      console.error('Failed to delete:', error);
+      toast.error('Failed to delete verification');
+    }
+  };
+
+  const handleClearAllHistory = async () => {
+    setDeletingAll(true);
+    try {
+      await deleteAllVerifications();
+      setHistory([]);
+      setShowDeleteAllConfirm(false);
+      toast.success('All verification history deleted');
+    } catch (error: any) {
+      console.error('Failed to clear history:', error);
+      toast.error('Failed to clear verification history');
+    } finally {
+      setDeletingAll(false);
+    }
   };
 
   if (loading) {
@@ -59,8 +83,8 @@ export default function HistoryPage() {
           
           {history.length > 0 && (
             <button
-              onClick={handleClearHistory}
-              className="flex items-center gap-2 px-4 py-2 rounded-lg border border-danger text-danger hover:bg-danger/10 transition-colors"
+              onClick={() => setShowDeleteAllConfirm(true)}
+              className="flex items-center gap-2 px-4 py-2 rounded-lg border border-red-500 text-red-600 hover:bg-red-50 dark:hover:bg-red-950/20 transition-colors"
             >
               <Trash2 className="h-4 w-4" />
               Clear All
@@ -68,11 +92,60 @@ export default function HistoryPage() {
           )}
         </div>
 
+        {/* Delete All Confirmation Modal */}
+        {showDeleteAllConfirm && (
+          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+            <div className="bg-white dark:bg-gray-800 rounded-xl p-6 max-w-md w-full shadow-2xl">
+              <div className="flex items-start gap-4 mb-4">
+                <div className="h-12 w-12 rounded-full bg-red-100 dark:bg-red-900/20 flex items-center justify-center flex-shrink-0">
+                  <AlertTriangle className="h-6 w-6 text-red-600" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold mb-2">Delete All History?</h3>
+                  <p className="text-sm text-muted-foreground">
+                    This will permanently delete all {history.length} verification{history.length !== 1 ? 's' : ''} from your history. This action cannot be undone.
+                  </p>
+                </div>
+              </div>
+              <div className="flex gap-3 justify-end">
+                <button
+                  onClick={() => setShowDeleteAllConfirm(false)}
+                  disabled={deletingAll}
+                  className="px-4 py-2 rounded-lg border hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors disabled:opacity-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleClearAllHistory}
+                  disabled={deletingAll}
+                  className="px-4 py-2 rounded-lg bg-red-600 text-white hover:bg-red-700 transition-colors disabled:opacity-50 flex items-center gap-2"
+                >
+                  {deletingAll ? (
+                    <>
+                      <div className="h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                      Deleting...
+                    </>
+                  ) : (
+                    <>
+                      <Trash2 className="h-4 w-4" />
+                      Delete All
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* History List */}
         {history.length > 0 ? (
           <div className="space-y-4">
             {history.map(result => (
-              <HistoryCard key={result.id} result={result} />
+              <HistoryCard 
+                key={result.id} 
+                result={result}
+                onDelete={() => handleDeleteItem(result.id)}
+              />
             ))}
           </div>
         ) : (

@@ -1,9 +1,10 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getVerificationHistory } from '@/lib/api';
 import { calculateUserStats, getBadges, UserStats } from '@/lib/analytics';
 import { VerificationResult } from '@/types';
 import { useAuth } from '@/stores/authStore';
+import { notificationService } from '@/lib/notifications';
 import { 
   BarChart, Bar, LineChart, Line, PieChart, Pie, Cell,
   XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer 
@@ -11,7 +12,7 @@ import {
 import { 
   TrendingUp, Target, Award, Flame, BarChart3, 
   CheckCircle, XCircle, AlertTriangle, Lock, Trophy,
-  ArrowUpRight, Calendar, Zap
+  ArrowUpRight, Calendar, Zap, Bell, BellOff
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
@@ -22,6 +23,13 @@ export default function DashboardPage() {
   const [verifications, setVerifications] = useState<VerificationResult[]>([]);
   const [stats, setStats] = useState<UserStats | null>(null);
   const [loading, setLoading] = useState(true);
+  const [notificationsEnabled, setNotificationsEnabled] = useState(false);
+  const previousBadgesRef = useRef<Set<string>>(new Set());
+
+  useEffect(() => {
+    // Check notification status
+    setNotificationsEnabled(notificationService.isEnabled());
+  }, []);
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -45,12 +53,50 @@ export default function DashboardPage() {
       const calculatedStats = calculateUserStats(data);
       console.log('User stats:', calculatedStats);
       setStats(calculatedStats);
+
+      // Check for newly earned badges and notify
+      if (calculatedStats) {
+        const currentBadges = getBadges(calculatedStats);
+        const earnedBadges = currentBadges.filter(b => b.earned);
+        
+        // Find newly earned badges
+        const newBadges = earnedBadges.filter(badge => 
+          !previousBadgesRef.current.has(badge.name)
+        );
+
+        // Notify about new badges
+        for (const badge of newBadges) {
+          await notificationService.notifyBadgeEarned(
+            badge.name,
+            badge.icon,
+            badge.description
+          );
+        }
+
+        // Update the reference
+        previousBadgesRef.current = new Set(earnedBadges.map(b => b.name));
+
+        // Check for streak milestones
+        if (calculatedStats.currentStreak > 0 && calculatedStats.currentStreak % 7 === 0) {
+          await notificationService.notifyStreakMilestone(calculatedStats.currentStreak);
+        }
+      }
     } catch (error: any) {
       console.error('Failed to load dashboard:', error);
       toast.error('Failed to load dashboard data');
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleToggleNotifications = async () => {
+    if (notificationsEnabled) {
+      toast.info('To disable notifications, change your browser settings.');
+      return;
+    }
+
+    const granted = await notificationService.requestPermission();
+    setNotificationsEnabled(granted);
   };
 
   if (authLoading || loading) {
@@ -90,9 +136,34 @@ export default function DashboardPage() {
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="mb-8">
-          <div className="flex items-center gap-3 mb-2">
-            <BarChart3 className="h-8 w-8 text-primary" />
-            <h1 className="text-4xl font-bold">Your Dashboard</h1>
+          <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center gap-3">
+              <BarChart3 className="h-8 w-8 text-primary" />
+              <h1 className="text-4xl font-bold">Your Dashboard</h1>
+            </div>
+            {notificationService.isSupported() && (
+              <button
+                onClick={handleToggleNotifications}
+                className={cn(
+                  "flex items-center gap-2 px-4 py-2 rounded-lg border transition-colors",
+                  notificationsEnabled
+                    ? "bg-blue-50 border-blue-500 text-blue-700 dark:bg-blue-950/20"
+                    : "hover:bg-gray-100 dark:hover:bg-gray-800"
+                )}
+              >
+                {notificationsEnabled ? (
+                  <>
+                    <Bell className="h-4 w-4" />
+                    <span className="text-sm font-medium">Notifications On</span>
+                  </>
+                ) : (
+                  <>
+                    <BellOff className="h-4 w-4" />
+                    <span className="text-sm font-medium">Enable Notifications</span>
+                  </>
+                )}
+              </button>
+            )}
           </div>
           <p className="text-lg text-muted-foreground">
             Track your fact-checking journey and contribution impact
