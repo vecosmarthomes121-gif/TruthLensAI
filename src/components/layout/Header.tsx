@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { Shield, Menu, X, LogOut, User, TrendingUp, History, BarChart3, Users } from 'lucide-react';
+import { Shield, Menu, X, LogOut, User, TrendingUp, History, BarChart3, Users, FileText } from 'lucide-react';
 import { useState } from 'react';
 import { useAuth } from '@/stores/authStore';
 import { authService } from '@/lib/auth';
@@ -52,6 +52,9 @@ export default function Header() {
                 </Link>
                 <Link to="/teams" className="text-sm font-medium text-foreground/80 hover:text-foreground transition-colors">
                   Teams
+                </Link>
+                <Link to="/templates" className="text-sm font-medium text-foreground/80 hover:text-foreground transition-colors">
+                  Templates
                 </Link>
               </>
             )}
@@ -132,6 +135,13 @@ export default function Header() {
                     onClick={() => setMobileMenuOpen(false)}
                   >
                     Teams
+                  </Link>
+                  <Link 
+                    to="/templates" 
+                    className="text-sm font-medium text-foreground/80 hover:text-foreground py-2"
+                    onClick={() => setMobileMenuOpen(false)}
+                  >
+                    Templates
                   </Link>
                 </>
               )}
