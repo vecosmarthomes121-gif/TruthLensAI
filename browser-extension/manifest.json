@@ -1,12 +1,15 @@
 {
   "manifest_version": 3,
-  "name": "TruthLens AI - Instant Fact Checker",
-  "version": "1.0.0",
-  "description": "Verify news articles, social media posts, and images with AI-powered fact-checking. Right-click any content for instant verification.",
+  "name": "TruthLens AI – Instant Fact Checker",
+  "version": "2.0.0",
+  "description": "AI-powered fact-checking on every page. Right-click text, images or links to verify instantly. Truth scores, sources, and forensic analysis without leaving the site.",
   "permissions": [
     "contextMenus",
     "activeTab",
-    "storage"
+    "storage",
+    "scripting",
+    "tabs",
+    "clipboardWrite"
   ],
   "host_permissions": [
     "https://*/*",
@@ -24,7 +27,7 @@
       "48": "icons/icon-48.png",
       "128": "icons/icon-128.png"
     },
-    "default_title": "TruthLens AI - Verify Content"
+    "default_title": "TruthLens AI – Verify Content"
   },
   "background": {
     "service_worker": "background.js"
@@ -39,7 +42,7 @@
   ],
   "web_accessible_resources": [
     {
-      "resources": ["icons/*.png"],
+      "resources": ["icons/*.png", "styles.css"],
       "matches": ["<all_urls>"]
     }
   ]

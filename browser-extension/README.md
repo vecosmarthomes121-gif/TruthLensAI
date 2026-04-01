@@ -1,111 +1,123 @@
-# TruthLens AI Browser Extension
+# TruthLens AI Browser Extension v2.0
 
-Verify news articles, social media posts, images, and videos instantly with AI-powered fact-checking directly from any webpage.
+AI-powered fact-checking on every webpage — verify text, articles, images, and links without leaving the site.
 
-## Features
+---
 
-✅ **One-Click Verification** - Floating "Verify" button on news articles and social media posts  
-✅ **Right-Click Context Menu** - Verify selected text, images, or links from anywhere  
-✅ **Quick Selection Verify** - Highlight any text to show instant verify button  
-✅ **Real-Time Analysis** - AI-powered verification with truth scores and sources  
-✅ **Beautiful Overlay** - Non-intrusive results popup without leaving the page  
-✅ **Cross-Browser Support** - Works on Chrome, Edge, Brave, and Firefox
+## ✨ What's New in v2.0
+
+- **In-popup verification** — type a claim directly in the extension popup and get results instantly
+- **Improved inline overlay** — beautiful modal with donut-chart truth score, detailed sources, and share button
+- **Smarter site detection** — floating button now appears on 30+ news sites and all article-type pages
+- **Recent verifications** — popup shows your last 5 fact-checks with quick re-open
+- **Better error handling** — clear timeout messages and retry options
+- **Dark-mode-safe styles** — scoped CSS won't clash with host-page dark themes
+
+---
 
 ## Installation
 
 ### Chrome / Edge / Brave
 
-1. Download this `browser-extension` folder
-2. Open Chrome and go to `chrome://extensions/`
-3. Enable **Developer mode** (toggle in top-right)
-4. Click **Load unpacked**
-5. Select the `browser-extension` folder
-6. The TruthLens AI icon should appear in your toolbar
+1. Open **chrome://extensions/** (or **edge://extensions/**)
+2. Enable **Developer mode** (top-right toggle)
+3. Click **Load unpacked** → select the `browser-extension/` folder
+4. The TruthLens shield icon appears in your toolbar
 
 ### Firefox
 
-1. Download this `browser-extension` folder
-2. Open Firefox and go to `about:debugging#/runtime/this-firefox`
-3. Click **Load Temporary Add-on**
-4. Select any file in the `browser-extension` folder (e.g., `manifest.json`)
-5. The extension will be loaded temporarily (reloads on Firefox restart)
+1. Open **about:debugging#/runtime/this-firefox**
+2. Click **Load Temporary Add-on**
+3. Select `browser-extension/manifest.json`
+4. *(For permanent install, extension must be signed by Mozilla)*
 
-**Note:** For permanent Firefox installation, the extension needs to be signed by Mozilla.
+---
 
 ## How to Use
 
-### Method 1: Floating Button
-- Visit any news article or social media post
-- Look for the blue "Verify with TruthLens" button in the bottom-right corner
-- Click to verify the entire page
+### Method 1 — Extension Popup
+1. Click the TruthLens icon in your toolbar
+2. Type or paste a claim/URL into the input field
+3. Press **Enter** or **Go**
+4. Results appear inline — click **View Full Report** for complete analysis
 
-### Method 2: Text Selection
-- Highlight any text on any webpage (10-500 characters)
-- A "Verify" button will appear near your selection
-- Click to fact-check the selected text
+### Method 2 — Floating Button (News/Social Sites)
+- A blue **"Verify Page"** button appears bottom-right on news articles and social media
+- Click it to fact-check the entire page with one tap
 
-### Method 3: Right-Click Menu
-- **For text:** Highlight text → Right-click → "Verify with TruthLens AI"
-- **For images:** Right-click on any image → "Verify Image with TruthLens AI"
-- **For links:** Right-click on any link → "Verify Article with TruthLens AI"
+### Method 3 — Text Selection
+1. Highlight any text (15–600 characters) on any webpage
+2. A **"Verify with TruthLens"** bubble appears near your cursor
+3. Click it — results open in a beautiful overlay without leaving the page
 
-### Method 4: Extension Popup
-- Click the TruthLens icon in your browser toolbar
-- Use quick actions to verify current page, view dashboard, or check history
+### Method 4 — Right-Click Context Menu
+| What you right-click | Menu item |
+|---|---|
+| Selected text | 🔍 Verify with TruthLens AI |
+| Any image | 🖼️ Check Image Authenticity |
+| Any hyperlink | 📰 Fact-Check This Article |
+| Blank page area | ✅ Verify This Page |
 
-## Supported Websites
+---
 
-The extension works on **all websites**, with special features on:
+## Overlay Controls
 
-**News Sites:**  
-CNN, BBC, Reuters, AP News, New York Times, Washington Post, The Guardian, Fox News, NBC News, ABC News, CBS News, USA Today, Wall Street Journal, Bloomberg
+| Control | Action |
+|---|---|
+| **ESC** key | Close overlay |
+| Click outside modal | Close overlay |
+| **View Full Report** | Opens complete result in new tab |
+| **Share** | Copies shareable text to clipboard |
+| **Re-Verify** | Runs verification again |
 
-**Social Media:**  
-Twitter/X, Facebook, Instagram, TikTok, Reddit, LinkedIn
+---
 
-**Any Website:**  
-Right-click context menu and text selection work everywhere
+## Supported Sites (Floating Button)
 
-## Verification Results
+News: CNN, BBC, Reuters, AP News, NYT, WaPo, The Guardian, Fox News, NBC, ABC, CBS, USA Today, WSJ, Bloomberg, Al Jazeera, The Atlantic, Politico, Axios, Vox, HuffPost, Daily Mail, The Independent, Financial Times, Time, Newsweek
+
+Social: Twitter/X, Facebook, Instagram, TikTok, Reddit, LinkedIn, YouTube, Threads
+
+*Text selection & right-click work on **all websites**.*
+
+---
+
+## Result Display
 
 Each verification shows:
-- **Truth Score** (0-100%) with color-coded status
-- **Detailed Analysis** by AI fact-checking system
-- **Top Sources** from 50,000+ global news outlets
-- **Link to Full Report** on TruthLens.ai
+- **Truth Score** (0–100%) with animated donut chart
+- **Verdict** badge (TRUE / MOSTLY TRUE / DISPUTED / MOSTLY FALSE / FALSE)
+- **AI Analysis** — plain-language explanation
+- **Top Sources** — up to 4 credibility-rated links
+- **Full Report link** — opens complete analysis on TruthLens web app
 
-## Privacy & Security
+---
 
-✅ No data collection - your browsing history is never tracked  
-✅ Verification requests sent only when you explicitly trigger them  
-✅ Open source - you can review all code  
-✅ No account required - works anonymously  
-✅ Secure HTTPS connections to TruthLens API
+## Privacy
+
+- No browsing data is collected or stored externally
+- Verification API calls are made **only** when you explicitly trigger them
+- Locally cached: verification count + 5 most recent results (stored in browser only)
+
+---
 
 ## Troubleshooting
 
-**Extension not working on a page?**
-- Refresh the page after installing the extension
-- Some sites (like chrome:// pages) block extensions by browser policy
+| Problem | Solution |
+|---|---|
+| Extension icon missing | Click the puzzle-piece icon → pin TruthLens |
+| Verification times out | Check internet connection; AI analysis can take up to 60 s |
+| Floating button missing | Only shown on article-type pages; use right-click or text selection instead |
+| Content script blocked | Some CSP-strict sites block extensions; use the popup input instead |
+| Firefox extension disappears | Must reload after Firefox restart (temporary add-on) |
 
-**Verification failed?**
-- Check your internet connection
-- Try again - API might be temporarily unavailable
+---
 
-**No floating button appearing?**
-- The button only appears on recognized news/social media sites
-- Use text selection or right-click menu instead
+## Version History
 
-## Support
+**v2.0.0** — Complete rewrite: in-popup verification, improved overlay UI, smarter site detection, recent verifications list, better error handling  
+**v1.0.0** — Initial release
 
-- **Website:** https://truthlens.ai
-- **Issues:** Report bugs at https://truthlens.ai/support
-- **Email:** support@truthlens.ai
+---
 
-## Version
-
-Current Version: **1.0.0**
-
-## License
-
-MIT License - Free to use and modify
+**Support:** contact@onspace.ai | **Website:** https://doztmrzytayxhgjbdozt.onspace.app

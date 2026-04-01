@@ -5,211 +5,415 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>TruthLens AI</title>
   <style>
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --brand-blue: #3b82f6;
+      --brand-purple: #a855f7;
+      --brand-grad: linear-gradient(135deg, #3b82f6 0%, #a855f7 100%);
+      --surface: #fff;
+      --muted: #f3f4f6;
+      --border: #e5e7eb;
+      --text: #111827;
+      --text-sub: #6b7280;
+      --radius: 10px;
     }
 
     body {
       width: 360px;
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-      background: linear-gradient(135deg, #3b82f6 0%, #a855f7 100%);
-      color: white;
+      min-height: 400px;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--surface);
+      color: var(--text);
+      font-size: 14px;
     }
 
-    .container {
-      padding: 24px;
+    /* ── Header ── */
+    .header {
+      background: var(--brand-grad);
+      padding: 18px 20px 16px;
+      color: #fff;
     }
-
-    .logo {
+    .header-top {
       display: flex;
       align-items: center;
-      gap: 12px;
-      margin-bottom: 20px;
+      justify-content: space-between;
+      margin-bottom: 14px;
     }
-
-    .logo img {
-      width: 40px;
-      height: 40px;
-      border-radius: 8px;
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
     }
-
-    .logo h1 {
-      font-size: 20px;
+    .brand-icon {
+      width: 36px;
+      height: 36px;
+      background: rgba(255,255,255,0.2);
+      border-radius: 9px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .brand h1 {
+      font-size: 17px;
+      font-weight: 800;
+      letter-spacing: -0.3px;
+    }
+    .stat-chip {
+      background: rgba(255,255,255,0.2);
+      border-radius: 20px;
+      padding: 5px 12px;
+      font-size: 12px;
       font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 5px;
     }
 
-    .tagline {
-      font-size: 14px;
-      opacity: 0.95;
-      margin-bottom: 24px;
-      line-height: 1.5;
-    }
-
-    .quick-actions {
-      background: rgba(255, 255, 255, 0.15);
-      backdrop-filter: blur(10px);
+    /* ── Quick Input ── */
+    .quick-input-section {
+      padding: 14px 16px;
+      background: rgba(255,255,255,0.12);
       border-radius: 12px;
-      padding: 16px;
-      margin-bottom: 20px;
     }
-
-    .quick-actions h2 {
-      font-size: 14px;
+    .quick-input-label {
+      font-size: 11px;
       font-weight: 700;
       text-transform: uppercase;
-      letter-spacing: 0.5px;
-      margin-bottom: 12px;
-      opacity: 0.9;
+      letter-spacing: 0.6px;
+      opacity: 0.85;
+      margin-bottom: 8px;
+    }
+    .quick-input-row {
+      display: flex;
+      gap: 8px;
+    }
+    .quick-input {
+      flex: 1;
+      padding: 9px 12px;
+      background: rgba(255,255,255,0.95);
+      border: none;
+      border-radius: 8px;
+      font-size: 13px;
+      color: #111827;
+      outline: none;
+      font-family: inherit;
+    }
+    .quick-input::placeholder { color: #9ca3af; }
+    .quick-verify-btn {
+      padding: 9px 14px;
+      background: #fff;
+      color: #3b82f6;
+      border: none;
+      border-radius: 8px;
+      font-size: 12px;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      transition: background 0.15s;
+    }
+    .quick-verify-btn:hover { background: #eff6ff; }
+    .quick-verify-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    /* ── Body ── */
+    .body { padding: 14px 16px; display: flex; flex-direction: column; gap: 14px; }
+
+    /* ── Quick Actions ── */
+    .section-title {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.6px;
+      color: var(--text-sub);
+      margin-bottom: 8px;
+    }
+
+    .action-grid {
+      display: flex;
+      flex-direction: column;
+      gap: 7px;
     }
 
     .action-btn {
       display: flex;
       align-items: center;
-      gap: 12px;
+      gap: 11px;
       width: 100%;
-      padding: 12px;
-      background: white;
-      color: #1f2937;
-      border: none;
-      border-radius: 8px;
+      padding: 11px 14px;
+      background: var(--muted);
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius);
       cursor: pointer;
-      font-size: 14px;
-      font-weight: 600;
-      margin-bottom: 8px;
-      transition: transform 0.2s, box-shadow 0.2s;
-    }
-
-    .action-btn:last-child {
-      margin-bottom: 0;
-    }
-
-    .action-btn:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-    }
-
-    .action-btn svg {
-      width: 20px;
-      height: 20px;
-      color: #3b82f6;
-    }
-
-    .stats {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 12px;
-      margin-bottom: 20px;
-    }
-
-    .stat-card {
-      background: rgba(255, 255, 255, 0.15);
-      backdrop-filter: blur(10px);
-      border-radius: 12px;
-      padding: 16px;
-      text-align: center;
-    }
-
-    .stat-value {
-      font-size: 24px;
-      font-weight: 800;
-      margin-bottom: 4px;
-    }
-
-    .stat-label {
-      font-size: 12px;
-      opacity: 0.9;
-    }
-
-    .footer-links {
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-    }
-
-    .footer-link {
-      color: white;
-      text-decoration: none;
       font-size: 13px;
-      opacity: 0.9;
+      font-weight: 600;
+      color: var(--text);
+      transition: background 0.15s, border-color 0.15s, transform 0.15s;
+      font-family: inherit;
+      text-align: left;
+    }
+    .action-btn:hover {
+      background: #eff6ff;
+      border-color: #bfdbfe;
+      transform: translateX(2px);
+    }
+    .action-btn svg {
+      width: 18px;
+      height: 18px;
+      color: var(--brand-blue);
+      flex-shrink: 0;
+    }
+    .action-btn .btn-desc {
+      font-size: 11px;
+      color: var(--text-sub);
+      font-weight: 400;
+      display: block;
+      margin-top: 1px;
+    }
+
+    /* ── Inline Result (in popup) ── */
+    #popup-result { display: none; }
+    #popup-result.visible { display: block; }
+
+    .popup-loading {
       display: flex;
       align-items: center;
+      gap: 10px;
+      padding: 12px 14px;
+      background: #eff6ff;
+      border-radius: var(--radius);
+      border: 1px solid #bfdbfe;
+    }
+    .spinner-sm {
+      width: 18px; height: 18px;
+      border: 2.5px solid #bfdbfe;
+      border-top-color: #3b82f6;
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      flex-shrink: 0;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .popup-loading span { font-size: 13px; color: #1d4ed8; font-weight: 600; }
+
+    .popup-result-card {
+      border-radius: var(--radius);
+      overflow: hidden;
+      border: 1.5px solid var(--border);
+    }
+    .popup-score-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 14px;
+    }
+    .popup-score-val {
+      font-size: 28px;
+      font-weight: 900;
+    }
+    .popup-status-badge {
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: 0.5px;
+      padding: 5px 12px;
+      border-radius: 20px;
+    }
+    .popup-claim-text {
+      padding: 0 14px 10px;
+      font-size: 12.5px;
+      color: var(--text-sub);
+      line-height: 1.5;
+      font-style: italic;
+      border-bottom: 1px solid var(--border);
+    }
+    .popup-explanation {
+      padding: 10px 14px;
+      font-size: 12.5px;
+      color: #374151;
+      line-height: 1.6;
+      max-height: 80px;
+      overflow: hidden;
+    }
+    .popup-actions {
+      display: flex;
       gap: 6px;
-      padding: 8px 12px;
-      border-radius: 6px;
-      transition: background 0.2s;
+      padding: 10px 14px;
+      background: var(--muted);
+      border-top: 1px solid var(--border);
+    }
+    .popup-action-btn {
+      flex: 1;
+      padding: 8px;
+      border-radius: 7px;
+      font-size: 12px;
+      font-weight: 700;
+      cursor: pointer;
+      border: none;
+      font-family: inherit;
+      transition: opacity 0.15s;
+    }
+    .popup-action-btn:hover { opacity: 0.85; }
+    .popup-action-primary {
+      background: var(--brand-grad);
+      color: #fff;
+    }
+    .popup-action-secondary {
+      background: #fff;
+      color: var(--brand-blue);
+      border: 1.5px solid #bfdbfe;
     }
 
-    .footer-link:hover {
-      background: rgba(255, 255, 255, 0.15);
-      opacity: 1;
+    /* ── Recent Verifications ── */
+    .recent-list {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .recent-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 9px 12px;
+      background: var(--muted);
+      border-radius: 8px;
+      cursor: pointer;
+      transition: background 0.15s;
+      border: 1px solid transparent;
+    }
+    .recent-item:hover { background: #eff6ff; border-color: #bfdbfe; }
+    .recent-claim {
+      font-size: 12px;
+      color: #374151;
+      flex: 1;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      padding-right: 10px;
+    }
+    .recent-score {
+      font-size: 12px;
+      font-weight: 800;
+      flex-shrink: 0;
     }
 
-    .footer-link svg {
-      width: 16px;
-      height: 16px;
+    /* ── Footer ── */
+    .footer {
+      padding: 12px 16px;
+      border-top: 1px solid var(--border);
+      display: flex;
+      gap: 6px;
     }
+    .footer-link {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 5px;
+      padding: 8px;
+      background: var(--muted);
+      border-radius: 8px;
+      color: var(--text);
+      text-decoration: none;
+      font-size: 11.5px;
+      font-weight: 600;
+      cursor: pointer;
+      border: 1px solid var(--border);
+      transition: background 0.15s;
+    }
+    .footer-link:hover { background: #eff6ff; border-color: #bfdbfe; }
   </style>
 </head>
 <body>
-  <div class="container">
-    <div class="logo">
-      <img src="icons/icon-48.png" alt="TruthLens AI">
-      <h1>TruthLens AI</h1>
-    </div>
 
-    <p class="tagline">
-      AI-powered fact-checking. Verify news, images, and videos instantly from any webpage.
-    </p>
-
-    <div class="quick-actions">
-      <h2>Quick Actions</h2>
-      <button class="action-btn" id="verify-current">
-        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
-        </svg>
-        Verify Current Page
-      </button>
-      <button class="action-btn" id="open-dashboard">
-        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
-        </svg>
-        View Dashboard
-      </button>
-      <button class="action-btn" id="view-history">
-        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
-        </svg>
-        Verification History
-      </button>
-    </div>
-
-    <div class="stats">
-      <div class="stat-card">
-        <div class="stat-value" id="total-verifications">0</div>
-        <div class="stat-label">Verified</div>
+  <!-- ── Header ── -->
+  <div class="header">
+    <div class="header-top">
+      <div class="brand">
+        <div class="brand-icon">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+            <path d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </div>
+        <h1>TruthLens AI</h1>
       </div>
-      <div class="stat-card">
-        <div class="stat-value">50K+</div>
-        <div class="stat-label">Sources</div>
+      <div class="stat-chip">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" stroke="currentColor" stroke-width="2.5"/></svg>
+        <span id="total-count">0</span> verified
       </div>
     </div>
 
-    <div class="footer-links">
-      <a href="https://truthlens.ai" target="_blank" class="footer-link">
-        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/>
-        </svg>
-        Open TruthLens Web
-      </a>
-      <a href="https://truthlens.ai/trending" target="_blank" class="footer-link">
-        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/>
-        </svg>
-        Trending Claims
-      </a>
+    <!-- Quick Verify Input -->
+    <div class="quick-input-section">
+      <div class="quick-input-label">Verify a claim or paste a URL</div>
+      <div class="quick-input-row">
+        <input type="text" class="quick-input" id="claim-input" placeholder="Type claim or paste link…" autocomplete="off"/>
+        <button class="quick-verify-btn" id="quick-verify-btn">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/></svg>
+          Go
+        </button>
+      </div>
     </div>
+  </div>
+
+  <!-- ── Body ── -->
+  <div class="body">
+
+    <!-- Inline Result Area -->
+    <div id="popup-result"></div>
+
+    <!-- Quick Actions -->
+    <div>
+      <div class="section-title">Quick Actions</div>
+      <div class="action-grid">
+        <button class="action-btn" id="verify-current">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <div>
+            Verify Current Page
+            <span class="btn-desc">Fact-check the article you're reading</span>
+          </div>
+        </button>
+        <button class="action-btn" id="open-trending">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <div>
+            Trending Claims
+            <span class="btn-desc">See what's being fact-checked globally</span>
+          </div>
+        </button>
+        <button class="action-btn" id="open-dashboard">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <div>
+            My Dashboard
+            <span class="btn-desc">Stats, streaks, achievements</span>
+          </div>
+        </button>
+        <button class="action-btn" id="view-history">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <div>
+            Verification History
+            <span class="btn-desc">Review your past fact-checks</span>
+          </div>
+        </button>
+      </div>
+    </div>
+
+    <!-- Recent Verifications -->
+    <div id="recent-section" style="display:none">
+      <div class="section-title">Recent Verifications</div>
+      <div class="recent-list" id="recent-list"></div>
+    </div>
+
+  </div>
+
+  <!-- ── Footer ── -->
+  <div class="footer">
+    <a class="footer-link" id="open-web">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+      Open Web App
+    </a>
+    <button class="footer-link" id="btn-help" style="background:none;cursor:pointer;">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+      How to Use
+    </button>
   </div>
 
   <script src="popup.js"></script>
