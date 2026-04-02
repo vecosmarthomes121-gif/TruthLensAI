@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router-dom';
-import { Shield, Zap, Globe, TrendingUp, Lock, BarChart3 } from 'lucide-react';
+import { Shield, Zap, Globe, TrendingUp, Lock, BarChart3, Puzzle, Download } from 'lucide-react';
 import heroImage from '@/assets/hero-verification.jpg';
 
 export default function HomePage() {
@@ -190,6 +190,45 @@ export default function HomePage() {
               <div className="text-4xl font-bold text-primary mb-2">📊</div>
               <p className="text-muted-foreground font-semibold">View Your Dashboard</p>
             </button>
+          </div>
+        </div>
+      </section>
+
+      {/* Browser Extension Banner */}
+      <section className="py-16">
+        <div className="container">
+          <div className="bg-gradient-to-br from-gray-900 to-gray-800 rounded-2xl p-8 lg:p-12 flex flex-col lg:flex-row items-center gap-8">
+            <div className="flex-shrink-0">
+              <div className="h-20 w-20 rounded-2xl bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center shadow-2xl">
+                <Puzzle className="h-10 w-10 text-white" />
+              </div>
+            </div>
+            <div className="flex-1 text-center lg:text-left">
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-500/20 text-blue-400 text-xs font-bold mb-3">
+                NEW · Browser Extension v2.0
+              </div>
+              <h2 className="text-2xl lg:text-3xl font-bold text-white mb-3">
+                Fact-Check Anywhere, Without Leaving the Page
+              </h2>
+              <p className="text-gray-400 max-w-xl">
+                Right-click any text, image, or link on any website to verify it instantly. Works on CNN, BBC, Twitter/X, Reddit, and 30+ more sites.
+              </p>
+            </div>
+            <div className="flex flex-col sm:flex-row lg:flex-col gap-3 flex-shrink-0">
+              <button
+                onClick={() => navigate('/extension')}
+                className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-gradient-to-r from-blue-600 to-purple-600 text-white font-bold hover:shadow-xl hover:-translate-y-0.5 transition-all whitespace-nowrap"
+              >
+                <Download className="h-4 w-4" />
+                Get Extension
+              </button>
+              <button
+                onClick={() => navigate('/verify')}
+                className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-white/10 text-white font-semibold border border-white/20 hover:bg-white/20 transition-all whitespace-nowrap"
+              >
+                Use Web App
+              </button>
+            </div>
           </div>
         </div>
       </section>

@@ -12,6 +12,7 @@ import DashboardPage from '@/pages/DashboardPage';
 import TeamsPage from '@/pages/TeamsPage';
 import TeamDetailPage from '@/pages/TeamDetailPage';
 import TemplatesPage from '@/pages/TemplatesPage';
+import ExtensionPage from '@/pages/ExtensionPage';
 import NotFoundPage from '@/pages/NotFoundPage';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/stores/authStore';
@@ -66,6 +67,7 @@ function App() {
           <Route path="/teams" element={<TeamsPage />} />
           <Route path="/teams/:teamId" element={<TeamDetailPage />} />
             <Route path="/templates" element={<TemplatesPage />} />
+            <Route path="/extension" element={<ExtensionPage />} />
             <Route path="/history" element={<HistoryPage />} />
             <Route path="*" element={<NotFoundPage />} />
           </Routes>

@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { Shield, Menu, X, LogOut, User, TrendingUp, History, BarChart3, Users, FileText } from 'lucide-react';
+import { Shield, Menu, X, LogOut, User, TrendingUp, History, BarChart3, Users, FileText, Puzzle } from 'lucide-react';
 import { useState } from 'react';
 import { useAuth } from '@/stores/authStore';
 import { authService } from '@/lib/auth';
@@ -58,6 +58,10 @@ export default function Header() {
                 </Link>
               </>
             )}
+            <Link to="/extension" className="text-sm font-medium text-foreground/80 hover:text-foreground transition-colors flex items-center gap-1">
+              <Puzzle className="h-3.5 w-3.5" />
+              Extension
+            </Link>
             <Link to="/history" className="text-sm font-medium text-foreground/80 hover:text-foreground transition-colors">
               History
             </Link>
@@ -145,6 +149,14 @@ export default function Header() {
                   </Link>
                 </>
               )}
+              <Link 
+                to="/extension" 
+                className="text-sm font-medium text-foreground/80 hover:text-foreground py-2 flex items-center gap-2"
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                <Puzzle className="h-4 w-4" />
+                Extension
+              </Link>
               <Link 
                 to="/history" 
                 className="text-sm font-medium text-foreground/80 hover:text-foreground py-2"
