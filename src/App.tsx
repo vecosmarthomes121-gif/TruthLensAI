@@ -11,6 +11,7 @@ import HistoryPage from '@/pages/HistoryPage';
 import DashboardPage from '@/pages/DashboardPage';
 import TeamsPage from '@/pages/TeamsPage';
 import TeamDetailPage from '@/pages/TeamDetailPage';
+import TeamPublicPage from '@/pages/TeamPublicPage';
 import TemplatesPage from '@/pages/TemplatesPage';
 import ExtensionPage from '@/pages/ExtensionPage';
 import NotFoundPage from '@/pages/NotFoundPage';
@@ -66,6 +67,7 @@ function App() {
             <Route path="/dashboard" element={<DashboardPage />} />
           <Route path="/teams" element={<TeamsPage />} />
           <Route path="/teams/:teamId" element={<TeamDetailPage />} />
+            <Route path="/teams/:teamId/public" element={<TeamPublicPage />} />
             <Route path="/templates" element={<TemplatesPage />} />
             <Route path="/extension" element={<ExtensionPage />} />
             <Route path="/history" element={<HistoryPage />} />

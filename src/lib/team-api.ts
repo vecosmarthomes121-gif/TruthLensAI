@@ -4,9 +4,28 @@ export interface Team {
   id: string;
   name: string;
   description: string;
+  is_public?: boolean;
   created_by: string;
   created_at: string;
   updated_at: string;
+}
+
+export interface PublicTeamProfile {
+  id: string;
+  name: string;
+  description: string;
+  created_at: string;
+  stats: {
+    member_count: number;
+    total_assignments: number;
+    completed: number;
+    in_progress: number;
+    pending: number;
+    avg_truth_score: number;
+    true_count: number;
+    false_count: number;
+    disputed_count: number;
+  };
 }
 
 export interface TeamMember {
@@ -324,6 +343,67 @@ export async function deleteComment(commentId: string): Promise<void> {
     .eq('id', commentId);
 
   if (error) throw error;
+}
+
+// Public Team Profile
+export async function getPublicTeamProfile(teamId: string): Promise<PublicTeamProfile> {
+  const { data: team, error } = await supabase
+    .from('teams')
+    .select('id, name, description, is_public, created_at')
+    .eq('id', teamId)
+    .eq('is_public', true)
+    .single();
+
+  if (error || !team) throw new Error('Team not found or is private');
+
+  const { data: statsData } = await supabase.rpc('get_public_team_stats', { p_team_id: teamId });
+
+  const stats = statsData || {};
+  return {
+    id: team.id,
+    name: team.name,
+    description: team.description || '',
+    created_at: team.created_at,
+    stats: {
+      member_count:      stats.member_count      || 0,
+      total_assignments: stats.total_assignments  || 0,
+      completed:         stats.completed          || 0,
+      in_progress:       stats.in_progress        || 0,
+      pending:           stats.pending            || 0,
+      avg_truth_score:   stats.avg_truth_score    || 0,
+      true_count:        stats.true_count         || 0,
+      false_count:       stats.false_count        || 0,
+      disputed_count:    stats.disputed_count     || 0,
+    },
+  };
+}
+
+export async function getPublicTeamShowcase(teamId: string): Promise<any[]> {
+  const { data, error } = await supabase
+    .from('verification_assignments')
+    .select('verification:verifications(id, claim, truth_score, status, explanation, created_at, sources)')
+    .eq('team_id', teamId)
+    .in('status', ['completed', 'verified'])
+    .order('updated_at', { ascending: false })
+    .limit(12);
+
+  if (error) throw error;
+
+  return (data || [])
+    .map((a: any) => a.verification)
+    .filter(Boolean);
+}
+
+export async function toggleTeamPublic(teamId: string, isPublic: boolean): Promise<Team> {
+  const { data, error } = await supabase
+    .from('teams')
+    .update({ is_public: isPublic, updated_at: new Date().toISOString() })
+    .eq('id', teamId)
+    .select()
+    .single();
+
+  if (error) throw error;
+  return data;
 }
 
 // Team Analytics

@@ -8,9 +8,9 @@ import {
   addTeamMember,
   updateTeamMemberRole,
   removeTeamMember,
-  assignVerification,
   updateAssignmentStatus,
   getTeamStats,
+  toggleTeamPublic,
   Team,
   TeamMember,
   VerificationAssignment,
@@ -30,6 +30,9 @@ import {
   Eye,
   BarChart3,
   ArrowLeft,
+  Globe,
+  Lock,
+  ExternalLink,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
@@ -47,6 +50,7 @@ export default function TeamDetailPage() {
   const [stats, setStats] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<TabType>('assignments');
+  const [togglingPublic, setTogglingPublic] = useState(false);
   const [showAddMember, setShowAddMember] = useState(false);
   const [newMemberEmail, setNewMemberEmail] = useState('');
   const [newMemberRole, setNewMemberRole] = useState<TeamMember['role']>('editor');
@@ -142,6 +146,20 @@ export default function TeamDetailPage() {
     }
   };
 
+  const handleTogglePublic = async () => {
+    if (!team || !teamId) return;
+    setTogglingPublic(true);
+    try {
+      const updated = await toggleTeamPublic(teamId, !team.is_public);
+      setTeam(updated);
+      toast.success(updated.is_public ? 'Team profile is now public' : 'Team profile is now private');
+    } catch (err: any) {
+      toast.error('Failed to update visibility');
+    } finally {
+      setTogglingPublic(false);
+    }
+  };
+
   const canManageMembers = myRole === 'owner' || myRole === 'admin';
   const canAssignTasks = myRole === 'owner' || myRole === 'admin' || myRole === 'editor';
 
@@ -192,11 +210,43 @@ export default function TeamDetailPage() {
         </button>
 
         <div className="mb-8">
-          <h1 className="text-4xl font-bold mb-2">{team.name}</h1>
-          <p className="text-lg text-muted-foreground">{team.description}</p>
-          <div className="flex items-center gap-2 mt-3">
-            {getRoleIcon(myRole || 'viewer')}
-            <span className="text-sm font-semibold capitalize">{myRole}</span>
+          <div className="flex flex-wrap items-start justify-between gap-4">
+            <div>
+              <h1 className="text-4xl font-bold mb-2">{team.name}</h1>
+              <p className="text-lg text-muted-foreground">{team.description}</p>
+              <div className="flex items-center gap-3 mt-3 flex-wrap">
+                <div className="flex items-center gap-2">
+                  {getRoleIcon(myRole || 'viewer')}
+                  <span className="text-sm font-semibold capitalize">{myRole}</span>
+                </div>
+                {team.is_public && (
+                  <a
+                    href={`/teams/${teamId}/public`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1.5 text-xs font-semibold text-blue-600 hover:underline"
+                  >
+                    <ExternalLink className="h-3.5 w-3.5" /> View Public Profile
+                  </a>
+                )}
+              </div>
+            </div>
+            {/* Public Toggle — owners only */}
+            {myRole === 'owner' && (
+              <button
+                onClick={handleTogglePublic}
+                disabled={togglingPublic}
+                className={cn(
+                  'inline-flex items-center gap-2 px-4 py-2 rounded-lg border font-semibold text-sm transition-all',
+                  team.is_public
+                    ? 'bg-green-50 border-green-200 text-green-700 hover:bg-green-100'
+                    : 'bg-muted border-border text-muted-foreground hover:text-foreground hover:bg-accent'
+                )}
+              >
+                {team.is_public ? <Globe className="h-4 w-4" /> : <Lock className="h-4 w-4" />}
+                {togglingPublic ? 'Saving…' : team.is_public ? 'Public Profile' : 'Make Public'}
+              </button>
+            )}
           </div>
         </div>
 
