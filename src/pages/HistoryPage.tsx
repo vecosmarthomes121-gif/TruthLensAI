@@ -2,9 +2,10 @@ import { useState, useEffect } from 'react';
 import { getVerificationHistory, deleteVerification, deleteAllVerifications } from '@/lib/api';
 import { VerificationResult } from '@/types';
 import HistoryCard from '@/components/features/HistoryCard';
-import { History, Trash2, AlertTriangle } from 'lucide-react';
+import { History, Trash2, AlertTriangle, Lock, ShieldCheck } from 'lucide-react';
 import { useAuth } from '@/stores/authStore';
 import { toast } from 'sonner';
+import { useNavigate } from 'react-router-dom';
 
 export default function HistoryPage() {
   const [history, setHistory] = useState<VerificationResult[]>([]);
@@ -12,9 +13,14 @@ export default function HistoryPage() {
   const [showDeleteAllConfirm, setShowDeleteAllConfirm] = useState(false);
   const [deletingAll, setDeletingAll] = useState(false);
   const { user } = useAuth();
+  const navigate = useNavigate();
 
   useEffect(() => {
-    loadHistory();
+    if (user) {
+      loadHistory();
+    } else {
+      setLoading(false);
+    }
   }, [user]);
 
   const loadHistory = async () => {
@@ -66,6 +72,45 @@ export default function HistoryPage() {
     );
   }
 
+  // ── Not logged in — privacy gate ──────────────────────────────
+  if (!user) {
+    return (
+      <div className="container py-20">
+        <div className="max-w-md mx-auto text-center">
+          <div className="h-24 w-24 rounded-2xl bg-gradient-to-br from-blue-100 to-purple-100 flex items-center justify-center mx-auto mb-6 shadow-inner">
+            <Lock className="h-12 w-12 text-blue-600" />
+          </div>
+          <h1 className="text-3xl font-bold mb-3">Your History is Private</h1>
+          <p className="text-muted-foreground mb-2 leading-relaxed">
+            Verification history is personal and securely tied to your account — only you can see it.
+          </p>
+          <p className="text-muted-foreground mb-8 leading-relaxed">
+            Sign in to access your personal verification history across all your devices.
+          </p>
+          <div className="flex flex-col sm:flex-row gap-3 justify-center">
+            <button
+              onClick={() => navigate('/verify')}
+              className="px-6 py-3 rounded-xl bg-gradient-to-r from-blue-600 to-purple-600 text-white font-bold hover:shadow-lg transition-shadow inline-flex items-center justify-center gap-2"
+            >
+              <ShieldCheck className="h-5 w-5" />
+              Sign In &amp; View History
+            </button>
+            <button
+              onClick={() => navigate('/')}
+              className="px-6 py-3 rounded-xl border-2 border-muted text-muted-foreground font-semibold hover:border-primary hover:text-primary transition-colors"
+            >
+              Go to Home
+            </button>
+          </div>
+          <div className="mt-8 p-4 bg-muted/40 rounded-xl text-xs text-muted-foreground leading-relaxed">
+            <span className="font-semibold block mb-1">🔒 Privacy Guarantee</span>
+            Your history is never visible to other users. No one can browse or access your verifications — not even admins.
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="container py-12">
       <div className="max-w-4xl mx-auto">
@@ -77,7 +122,7 @@ export default function HistoryPage() {
               <h1 className="text-4xl font-bold">Verification History</h1>
             </div>
             <p className="text-lg text-muted-foreground">
-              {user ? 'Your verifications synced across all devices' : 'Your past fact-checks and verification results'}
+              Your personal verifications — private and synced across all your devices
             </p>
           </div>
           

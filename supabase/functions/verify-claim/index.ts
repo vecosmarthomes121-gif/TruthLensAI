@@ -779,16 +779,22 @@ Return ONLY the JSON object, no other text.`;
 
     console.log('Verification saved successfully:', savedVerification.id);
 
-    // Update trending claims (async, don't wait)
-    supabaseAdmin
-      .rpc('increment_trending_claim', {
-        claim_text: analyzedClaim, // Use descriptive name for images/videos
-        score: result.truthScore,
-        claim_status: result.status
-      })
-      .then(({ error }) => {
-        if (error) console.error('Trending update error:', error);
-      });
+    // Update trending claims ONLY for authenticated users (never anonymous)
+    if (userId) {
+      supabaseAdmin
+        .rpc('increment_trending_claim', {
+          claim_text: analyzedClaim,
+          score: result.truthScore,
+          claim_status: result.status,
+          user_id_param: userId
+        })
+        .then(({ error }) => {
+          if (error) console.error('Trending update error:', error);
+          else console.log('Trending updated for authenticated user:', userId);
+        });
+    } else {
+      console.log('Skipping trending update — anonymous verification');
+    }
 
     return new Response(
       JSON.stringify({

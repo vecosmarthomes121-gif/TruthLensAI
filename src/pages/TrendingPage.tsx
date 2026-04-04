@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { getTrendingClaims } from '@/lib/api';
 import { TrendingClaim } from '@/types';
 import TrendingCard from '@/components/features/TrendingCard';
-import { TrendingUp, Filter } from 'lucide-react';
+import { TrendingUp, Filter, Users } from 'lucide-react';
 import { toast } from 'sonner';
 
 export default function TrendingPage() {
@@ -52,7 +52,7 @@ export default function TrendingPage() {
             <h1 className="text-4xl font-bold">Trending Verifications</h1>
           </div>
           <p className="text-lg text-muted-foreground">
-            Most verified claims in real-time. Track viral misinformation before it spreads.
+            Claims verified by multiple users. Topics reach trending when 2+ logged-in users verify the same subject.
           </p>
         </div>
 
@@ -119,18 +119,26 @@ export default function TrendingPage() {
             ))}
           </div>
         ) : (
-          <div className="text-center py-12 bg-muted/30 rounded-xl">
-            <TrendingUp className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
-            <h3 className="text-xl font-semibold mb-2">No Trending Claims Yet</h3>
-            <p className="text-muted-foreground mb-6">
-              Start verifying claims to see trending misinformation
+          <div className="text-center py-16 bg-muted/30 rounded-xl">
+            <div className="h-20 w-20 rounded-2xl bg-gradient-to-br from-blue-100 to-purple-100 flex items-center justify-center mx-auto mb-5">
+              <TrendingUp className="h-10 w-10 text-blue-600" />
+            </div>
+            <h3 className="text-xl font-semibold mb-2">No Trending Topics Yet</h3>
+            <p className="text-muted-foreground mb-2 max-w-sm mx-auto">
+              Trending topics appear when 2 or more signed-in users verify the same subject.
             </p>
-            <a 
-              href="/verify"
-              className="inline-block px-6 py-3 rounded-lg bg-gradient-to-r from-blue-600 to-purple-600 text-white font-semibold hover:shadow-lg transition-shadow"
-            >
-              Verify First Claim
-            </a>
+            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-blue-100 text-blue-700 text-xs font-semibold mb-6">
+              <Users className="h-3.5 w-3.5" />
+              Only authenticated verifications count toward trending
+            </div>
+            <div>
+              <a
+                href="/verify"
+                className="inline-block px-6 py-3 rounded-lg bg-gradient-to-r from-blue-600 to-purple-600 text-white font-semibold hover:shadow-lg transition-shadow"
+              >
+                Sign In &amp; Verify a Claim
+              </a>
+            </div>
           </div>
         )}
       </div>
