@@ -8,26 +8,6 @@ interface VerifyRequest {
   mediaUrl?: string;
 }
 
-interface ImageAnalysis {
-  isAiGenerated: boolean;
-  confidence: number;
-  manipulationDetected: boolean;
-  metadata: any;
-  reverseSearchResults: Array<{
-    url: string;
-    title: string;
-    source: string;
-  }>;
-}
-
-interface VideoAnalysis {
-  transcript: string;
-  extractedClaims: string[];
-  duration: number;
-  deepfakeDetected: boolean;
-  confidence: number;
-}
-
 interface Source {
   id: string;
   name: string;
@@ -49,31 +29,7 @@ interface VerificationResult {
     truthScore: number;
     status: string;
   }>;
-  contentAnalysis?: {
-    contentType: 'article' | 'image' | 'video' | 'social-post' | 'mixed';
-    summary: string;
-    extractedText?: string;
-    mainClaim?: string;
-    extractedMedia?: Array<{
-      type: 'image' | 'video';
-      url: string;
-      caption?: string;
-    }>;
-    imageAnalysis?: {
-      isAiGenerated: boolean;
-      confidence: number;
-      manipulationDetected: boolean;
-      manipulationDetails: string;
-      authenticityScore: number;
-      suspiciousElements: string[];
-      reverseSearchResults: Array<{
-        url: string;
-        title: string;
-        source: string;
-      }>;
-    };
-    videoAnalysis?: any;
-  };
+  contentAnalysis?: any;
 }
 
 interface SerperResult {
@@ -84,162 +40,224 @@ interface SerperResult {
   source?: string;
 }
 
+// ── Helper: fetch image and convert to base64 data URL ──────────────────────
+async function fetchImageAsBase64(url: string): Promise<{ base64: string; mimeType: string } | null> {
+  try {
+    console.log('Fetching image as base64:', url.substring(0, 80));
+    const response = await fetch(url, {
+      headers: { 'User-Agent': 'Mozilla/5.0 (compatible; TruthLensBot/1.0)' },
+    });
+    if (!response.ok) {
+      console.error('Image fetch failed:', response.status);
+      return null;
+    }
+    const contentType = response.headers.get('content-type') || 'image/jpeg';
+    const mimeType = contentType.split(';')[0].trim();
+    const buffer = await response.arrayBuffer();
+    const bytes = new Uint8Array(buffer);
+    let binary = '';
+    for (let i = 0; i < bytes.byteLength; i++) {
+      binary += String.fromCharCode(bytes[i]);
+    }
+    const base64 = btoa(binary);
+    console.log(`✓ Image fetched as base64 (${Math.round(buffer.byteLength / 1024)}KB, ${mimeType})`);
+    return { base64, mimeType };
+  } catch (err) {
+    console.error('fetchImageAsBase64 error:', err);
+    return null;
+  }
+}
+
+// ── Helper: run Serper search with key rotation ──────────────────────────────
+async function serperSearch(query: string, keys: string[], type: 'search' | 'images' | 'news' = 'search', num = 10): Promise<any> {
+  const endpoint = type === 'images'
+    ? 'https://google.serper.dev/images'
+    : type === 'news'
+      ? 'https://google.serper.dev/news'
+      : 'https://google.serper.dev/search';
+
+  for (let i = 0; i < keys.length; i++) {
+    try {
+      const res = await fetch(endpoint, {
+        method: 'POST',
+        headers: { 'X-API-KEY': keys[i], 'Content-Type': 'application/json' },
+        body: JSON.stringify({ q: query, num, gl: 'us', hl: 'en' }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        console.log(`✓ Serper ${type} search success with key ${i + 1}`);
+        return data;
+      }
+      console.warn(`✗ Serper key ${i + 1} returned ${res.status}`);
+    } catch (err) {
+      console.error(`✗ Serper key ${i + 1} error:`, err);
+    }
+  }
+  return null;
+}
+
+// ── Helper: call OnSpace AI ──────────────────────────────────────────────────
+async function callAI(
+  apiKey: string,
+  baseUrl: string,
+  messages: any[],
+  temperature = 0.3
+): Promise<string> {
+  const res = await fetch(`${baseUrl}/chat/completions`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${apiKey}`,
+    },
+    body: JSON.stringify({
+      model: 'google/gemini-3-flash-preview',
+      messages,
+      temperature,
+    }),
+  });
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(`AI request failed: ${res.status} ${text}`);
+  }
+  const data = await res.json();
+  return data.choices?.[0]?.message?.content ?? '';
+}
+
+// ── Helper: parse JSON from AI response ──────────────────────────────────────
+function parseJSON(content: string): any {
+  const cleaned = content
+    .replace(/```json\n?/g, '')
+    .replace(/```\n?/g, '')
+    .trim();
+  return JSON.parse(cleaned);
+}
+
 Deno.serve(async (req) => {
-  // Handle CORS preflight
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
     const { claim, inputType, mediaUrl }: VerifyRequest = await req.json();
-    console.log('Verifying claim:', { claim, inputType });
+    console.log('=== verify-claim start ===', { inputType, claim: claim?.substring(0, 80) });
 
     if (!claim || !inputType) {
       return new Response(
-        JSON.stringify({ error: 'Claim and inputType are required' }),
+        JSON.stringify({ error: 'claim and inputType are required' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    // Get API credentials
     const aiApiKey = Deno.env.get('ONSPACE_AI_API_KEY');
     const aiBaseUrl = Deno.env.get('ONSPACE_AI_BASE_URL');
-    
-    // Get all available Serper API keys for fallback rotation
-    const serperApiKeys = [
+    const serperKeys = [
       Deno.env.get('SERPER_API_KEY'),
       Deno.env.get('SERPER_API_KEY_2'),
       Deno.env.get('SERPER_API_KEY_3'),
-    ].filter(Boolean) as string[]; // Remove undefined keys
+    ].filter(Boolean) as string[];
 
-    if (!aiApiKey || !aiBaseUrl) {
-      throw new Error('OnSpace AI configuration missing');
-    }
+    if (!aiApiKey || !aiBaseUrl) throw new Error('OnSpace AI configuration missing');
+    if (serperKeys.length === 0) throw new Error('No Serper API keys configured');
 
-    if (serperApiKeys.length === 0) {
-      throw new Error('No Serper API keys configured');
-    }
-
-    console.log(`Available Serper API keys: ${serperApiKeys.length}`);
-
-    // Get current date for context
-    const currentDate = new Date();
-    const formattedDate = currentDate.toLocaleDateString('en-US', { 
-      year: 'numeric', 
-      month: 'long', 
-      day: 'numeric' 
+    const currentDate = new Date().toLocaleDateString('en-US', {
+      year: 'numeric', month: 'long', day: 'numeric',
     });
 
-    // Initialize variables for content analysis
     let contentAnalysis: any = null;
     let analyzedClaim = claim;
 
-    // Step 0: Handle image verification if input type is image
-    if (inputType === 'image' && mediaUrl) {
-      console.log('Step 0: Analyzing image for AI generation, manipulation, and authenticity...');
-      
-      // Analyze image with AI vision
-      const imageAnalysisPrompt = `Analyze this image for authenticity and manipulation:
+    // ════════════════════════════════════════════════════════════════
+    // STEP A: IMAGE VERIFICATION
+    // ════════════════════════════════════════════════════════════════
+    if (inputType === 'image') {
+      const imageUrl = mediaUrl || claim;
+      console.log('--- IMAGE VERIFICATION ---');
 
-**Current Date:** ${formattedDate}
-**Image URL:** ${mediaUrl}
+      // Fetch image as base64 so Gemini can actually read it
+      const imageData = await fetchImageAsBase64(imageUrl);
 
-Perform a comprehensive forensic analysis:
-1. Provide a short, descriptive name for this image (max 8 words) - describe what you see
-2. Detect if this image is AI-generated (look for typical AI artifacts, unnatural patterns, inconsistencies)
-3. Check for photo manipulation or editing (cloning, compositing, color adjustments)
-4. Assess overall authenticity
-5. Identify any suspicious elements
+      if (!imageData) {
+        console.warn('Could not fetch image, attempting URL-based description fallback');
+      }
 
-Provide a JSON response:
+      const imagePrompt = `You are a forensic image analyst. Analyze this image thoroughly.
+
+Current date: ${currentDate}
+
+Tasks:
+1. Provide a short descriptive name (max 8 words) for what you see
+2. Detect if AI-generated (look for artifacts, unnatural patterns, inconsistencies)
+3. Detect photo manipulation (cloning, compositing, unnatural lighting, copy-paste)
+4. Overall authenticity assessment
+5. Identify any text, logos, events, or notable elements visible
+
+Return ONLY valid JSON:
 {
-  "imageName": "<short descriptive name, e.g. 'Man standing on tree', 'City skyline at sunset'>",
+  "imageName": "<descriptive name of the image content>",
   "isAiGenerated": <true|false>,
   "aiGenerationConfidence": <0-100>,
   "manipulationDetected": <true|false>,
-  "manipulationDetails": "<description of any manipulation found>",
+  "manipulationDetails": "<what manipulation was found, or 'None detected'>",
   "authenticityScore": <0-100>,
-  "suspiciousElements": ["<element1>", "<element2>"],
-  "analysis": "<detailed explanation>"
-}
+  "suspiciousElements": ["<element>"],
+  "visibleText": "<any text visible in image>",
+  "analysis": "<2-3 sentence plain-language summary of what this image shows and its authenticity>"
+}`;
 
-Return ONLY the JSON object.`;
-
-      const imageAnalysisResponse = await fetch(`${aiBaseUrl}/chat/completions`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${aiApiKey}`,
-        },
-        body: JSON.stringify({
-          model: 'google/gemini-3-flash-preview',
-          messages: [
+      const imageMessages = imageData
+        ? [
             {
               role: 'user',
               content: [
-                { type: 'text', text: imageAnalysisPrompt },
-                { type: 'image_url', image_url: { url: mediaUrl } }
-              ]
-            }
-          ],
-          temperature: 0.2,
-        }),
-      });
+                { type: 'text', text: imagePrompt },
+                {
+                  type: 'image_url',
+                  image_url: { url: `data:${imageData.mimeType};base64,${imageData.base64}` },
+                },
+              ],
+            },
+          ]
+        : [
+            {
+              role: 'system',
+              content: 'You are a forensic image analyst. Respond with valid JSON only.',
+            },
+            {
+              role: 'user',
+              content: `${imagePrompt}\n\nImage URL: ${imageUrl}\n(Image could not be fetched directly — analyze based on URL context if possible)`,
+            },
+          ];
 
       let imageAnalysis: any = {};
-      if (imageAnalysisResponse.ok) {
-        const imageData = await imageAnalysisResponse.json();
-        const imageContent = imageData.choices?.[0]?.message?.content ?? '{}';
-        try {
-          const cleanedImageAnalysis = imageContent
-            .replace(/```json\n?/g, '')
-            .replace(/```\n?/g, '')
-            .trim();
-          imageAnalysis = JSON.parse(cleanedImageAnalysis);
-          console.log('✓ Image analysis complete:', imageAnalysis);
-        } catch (e) {
-          console.error('Failed to parse image analysis:', e);
-        }
+      try {
+        const raw = await callAI(aiApiKey, aiBaseUrl, imageMessages, 0.2);
+        imageAnalysis = parseJSON(raw);
+        console.log('✓ Image analysis:', JSON.stringify(imageAnalysis).substring(0, 200));
+      } catch (e) {
+        console.error('Image analysis parse error:', e);
+        imageAnalysis = {
+          imageName: 'Uploaded image',
+          isAiGenerated: false,
+          manipulationDetected: false,
+          authenticityScore: 50,
+          analysis: 'Image could not be fully analyzed.',
+        };
       }
 
-      // Reverse image search using Serper
-      console.log('Performing reverse image search...');
+      // Reverse image search
       let reverseSearchResults: any[] = [];
-      
-      for (let i = 0; i < serperApiKeys.length; i++) {
-        try {
-          const reverseSearchResponse = await fetch('https://google.serper.dev/images', {
-            method: 'POST',
-            headers: {
-              'X-API-KEY': serperApiKeys[i],
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              q: claim,
-              num: 10,
-              gl: 'us',
-            }),
-          });
-
-          if (reverseSearchResponse.ok) {
-            const reverseData = await reverseSearchResponse.json();
-            reverseSearchResults = (reverseData.images || []).slice(0, 5).map((img: any) => ({
-              url: img.link,
-              title: img.title,
-              source: img.source || new URL(img.link).hostname
-            }));
-            console.log(`✓ Found ${reverseSearchResults.length} similar images`);
-            break;
-          }
-        } catch (error) {
-          console.error(`Reverse search with key ${i + 1} failed:`, error);
-          continue;
-        }
+      const searchQuery = imageAnalysis.imageName || imageAnalysis.visibleText || claim;
+      const imgSearch = await serperSearch(searchQuery, serperKeys, 'images', 10);
+      if (imgSearch?.images) {
+        reverseSearchResults = imgSearch.images.slice(0, 5).map((img: any) => ({
+          url: img.link,
+          title: img.title,
+          source: img.source || img.link,
+        }));
       }
 
-      // Add image analysis to content analysis
       contentAnalysis = {
-        contentType: 'image' as const,
+        contentType: 'image',
         summary: imageAnalysis.analysis || 'Image forensic analysis completed',
         imageAnalysis: {
           isAiGenerated: imageAnalysis.isAiGenerated || false,
@@ -248,577 +266,476 @@ Return ONLY the JSON object.`;
           manipulationDetails: imageAnalysis.manipulationDetails || 'No manipulation detected',
           authenticityScore: imageAnalysis.authenticityScore || 100,
           suspiciousElements: imageAnalysis.suspiciousElements || [],
-          reverseSearchResults
-        }
+          reverseSearchResults,
+        },
       };
 
-      // Use AI-generated descriptive name instead of URL
-      if (imageAnalysis.imageName) {
-        analyzedClaim = imageAnalysis.imageName;
-        console.log(`✓ Generated image name: ${analyzedClaim}`);
-      } else {
-        analyzedClaim = 'Image verification'; // Fallback
-      }
-      console.log('✓ Image analysis complete, proceeding to web verification');
+      analyzedClaim = imageAnalysis.imageName || 'Image verification';
+      console.log(`✓ Image name: "${analyzedClaim}"`);
     }
 
-    // Step 0.5: Handle video verification if input type is video
-    if (inputType === 'video' && mediaUrl) {
-      console.log('Step 0.5: Analyzing video for deepfakes and extracting transcript...');
-      
-      // Check if it's a YouTube or TikTok URL
-      const isYouTube = mediaUrl.includes('youtube.com') || mediaUrl.includes('youtu.be');
-      const isTikTok = mediaUrl.includes('tiktok.com');
-      
+    // ════════════════════════════════════════════════════════════════
+    // STEP B: VIDEO VERIFICATION
+    // ════════════════════════════════════════════════════════════════
+    if (inputType === 'video') {
+      const videoUrl = mediaUrl || claim;
+      const isYouTube = videoUrl.includes('youtube.com') || videoUrl.includes('youtu.be');
+      const isTikTok = videoUrl.includes('tiktok.com');
+      console.log('--- VIDEO VERIFICATION ---', { isYouTube, isTikTok });
+
       if (isYouTube || isTikTok) {
-        // For YouTube/TikTok URLs, analyze the video description and extract claims
-        const videoAnalysisPrompt = `Analyze this ${isYouTube ? 'YouTube' : 'TikTok'} video URL and extract claims:
-
-**Video URL:** ${mediaUrl}
-**User's description/claim:** ${claim}
-**Current Date:** ${formattedDate}
-
-Provide a JSON response:
-{
-  "mainClaim": "<primary claim made in the video>",
-  "extractedClaims": ["<claim1>", "<claim2>"],
-  "videoType": "<news|opinion|entertainment|educational>",
-  "summary": "<brief summary of video content>"
-}
-
-Return ONLY the JSON object.`;
-
-        const videoAnalysisResponse = await fetch(`${aiBaseUrl}/chat/completions`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${aiApiKey}`,
-          },
-          body: JSON.stringify({
-            model: 'google/gemini-3-flash-preview',
-            messages: [
-              { role: 'system', content: 'You are a video content analyzer. Respond with valid JSON only.' },
-              { role: 'user', content: videoAnalysisPrompt }
-            ],
-            temperature: 0.3,
-          }),
-        });
-
-        if (videoAnalysisResponse.ok) {
-          const videoData = await videoAnalysisResponse.json();
-          const videoContent = videoData.choices?.[0]?.message?.content ?? '{}';
-          try {
-            const cleanedVideoAnalysis = videoContent
-              .replace(/```json\n?/g, '')
-              .replace(/```\n?/g, '')
-              .trim();
-            const videoAnalysis = JSON.parse(cleanedVideoAnalysis);
-            
-            contentAnalysis = {
-              contentType: 'video' as const,
-              summary: videoAnalysis.summary || 'Video content analyzed',
-              mainClaim: videoAnalysis.mainClaim,
-              extractedMedia: [{
-                type: 'video' as const,
-                url: mediaUrl,
-                caption: videoAnalysis.mainClaim || claim
-              }],
-              videoAnalysis: {
-                platform: isYouTube ? 'YouTube' : 'TikTok',
-                extractedClaims: videoAnalysis.extractedClaims || [],
-                videoType: videoAnalysis.videoType
-              }
-            };
-            
-            analyzedClaim = videoAnalysis.mainClaim || claim;
-            console.log('✓ Video analysis complete:', videoAnalysis);
-          } catch (e) {
-            console.error('Failed to parse video analysis:', e);
-          }
+        // Extract video ID and fetch metadata via Serper
+        let videoId = '';
+        if (isYouTube) {
+          const ytMatch = videoUrl.match(/(?:v=|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
+          videoId = ytMatch?.[1] || '';
         }
-      } else {
-        // For uploaded videos, use Gemini's video analysis capabilities
-        const videoAnalysisPrompt = `Analyze this video for:
-1. Deepfake detection (facial inconsistencies, unnatural movements, audio-visual sync issues)
-2. Content authenticity
-3. Main claims or statements made
 
-**Current Date:** ${formattedDate}
+        // Search for info about this video
+        const searchQuery = isYouTube
+          ? `site:youtube.com ${videoId || claim} fact check`
+          : `tiktok ${claim} fact check`;
 
-Provide a JSON response:
+        const videoSearchData = await serperSearch(searchQuery, serperKeys, 'search', 10);
+        const videoSearchContext = (videoSearchData?.organic || [])
+          .slice(0, 5)
+          .map((r: any, i: number) => `[${i + 1}] ${r.title}\n   ${r.snippet}`)
+          .join('\n\n');
+
+        const videoPrompt = `Analyze this ${isYouTube ? 'YouTube' : 'TikTok'} video and extract verifiable claims.
+
+Video URL: ${videoUrl}
+User description: ${claim}
+Current date: ${currentDate}
+
+Related search results found online:
+${videoSearchContext || 'No additional context found.'}
+
+Return ONLY valid JSON:
 {
+  "mainClaim": "<the primary verifiable claim made or implied by this video>",
+  "videoTitle": "<estimated or known title of the video>",
+  "extractedClaims": ["<claim1>", "<claim2>"],
+  "contentType": "<news|opinion|entertainment|educational|misinformation>",
+  "summary": "<2-3 sentence summary of what this video is about>"
+}`;
+
+        let videoAnalysis: any = {};
+        try {
+          const raw = await callAI(aiApiKey, aiBaseUrl, [
+            { role: 'system', content: 'You are a video content analyst. Respond with valid JSON only.' },
+            { role: 'user', content: videoPrompt },
+          ]);
+          videoAnalysis = parseJSON(raw);
+          console.log('✓ Video analysis:', JSON.stringify(videoAnalysis).substring(0, 200));
+        } catch (e) {
+          console.error('Video analysis error:', e);
+          videoAnalysis = { mainClaim: claim, summary: 'Video content analysis' };
+        }
+
+        contentAnalysis = {
+          contentType: 'video',
+          summary: videoAnalysis.summary || `Video: ${claim}`,
+          mainClaim: videoAnalysis.mainClaim,
+          extractedMedia: [{ type: 'video', url: videoUrl, caption: videoAnalysis.videoTitle || claim }],
+          videoAnalysis: {
+            platform: isYouTube ? 'YouTube' : 'TikTok',
+            extractedClaims: videoAnalysis.extractedClaims || [],
+            contentType: videoAnalysis.contentType,
+          },
+        };
+
+        analyzedClaim = videoAnalysis.mainClaim || claim;
+      } else {
+        // Uploaded video — try to fetch and send as base64 (for short clips)
+        console.log('Uploaded video — attempting base64 fetch for AI analysis...');
+        const videoData = await fetchImageAsBase64(videoUrl); // reuse same helper
+
+        let videoAnalysis: any = {};
+        if (videoData && videoData.mimeType.startsWith('video/')) {
+          try {
+            const raw = await callAI(aiApiKey, aiBaseUrl, [
+              {
+                role: 'user',
+                content: [
+                  {
+                    type: 'text',
+                    text: `Analyze this video. Current date: ${currentDate}. User description: "${claim}".
+Extract the main verifiable claim, summarize content, and check for any signs of deepfake or manipulation.
+Return ONLY valid JSON:
+{
+  "mainClaim": "<primary verifiable claim>",
+  "summary": "<2-3 sentence content summary>",
   "deepfakeDetected": <true|false>,
   "deepfakeConfidence": <0-100>,
-  "transcript": "<extracted speech/text from video>",
-  "extractedClaims": ["<claim1>", "<claim2>"],
   "authenticityScore": <0-100>,
-  "analysis": "<detailed explanation>"
-}
-
-Return ONLY the JSON object.`;
-
-        // Note: For production, you would use Gemini's video input capability here
-        // For now, we'll provide context-based analysis
-        contentAnalysis = {
-          contentType: 'video' as const,
-          summary: `Video verification for: ${claim}`,
-          extractedMedia: [{
-            type: 'video' as const,
-            url: mediaUrl,
-            caption: claim
-          }],
-          videoAnalysis: {
-            note: 'Video analysis in progress. For full video verification, the system would extract audio, analyze frames, and detect deepfakes.'
+  "analysis": "<plain-language analysis>"
+}`,
+                  },
+                  {
+                    type: 'image_url',
+                    image_url: { url: `data:${videoData.mimeType};base64,${videoData.base64}` },
+                  },
+                ],
+              },
+            ], 0.3);
+            videoAnalysis = parseJSON(raw);
+            console.log('✓ Uploaded video analysis complete');
+          } catch (e) {
+            console.error('Uploaded video AI analysis error:', e);
           }
+        } else {
+          // Fallback: describe based on claim context
+          try {
+            const raw = await callAI(aiApiKey, aiBaseUrl, [
+              { role: 'system', content: 'You are a video fact-checker. Respond with valid JSON only.' },
+              {
+                role: 'user',
+                content: `The user uploaded a video and described it as: "${claim}". Current date: ${currentDate}.
+Extract the most likely verifiable claim and provide analysis context.
+Return ONLY valid JSON:
+{
+  "mainClaim": "<most likely verifiable claim from the description>",
+  "summary": "<what this video is likely about based on description>",
+  "deepfakeDetected": false,
+  "authenticityScore": 70,
+  "analysis": "<analysis based on description>"
+}`,
+              },
+            ]);
+            videoAnalysis = parseJSON(raw);
+          } catch (e) {
+            videoAnalysis = { mainClaim: claim, summary: 'Video content' };
+          }
+        }
+
+        contentAnalysis = {
+          contentType: 'video',
+          summary: videoAnalysis.summary || 'Uploaded video analyzed',
+          mainClaim: videoAnalysis.mainClaim,
+          extractedMedia: [{ type: 'video', url: videoUrl, caption: videoAnalysis.mainClaim || claim }],
+          videoAnalysis: {
+            deepfakeDetected: videoAnalysis.deepfakeDetected || false,
+            deepfakeConfidence: videoAnalysis.deepfakeConfidence || 0,
+            authenticityScore: videoAnalysis.authenticityScore || 70,
+            analysis: videoAnalysis.analysis || '',
+          },
+        };
+
+        analyzedClaim = videoAnalysis.mainClaim || claim;
+        console.log(`✓ Video claim: "${analyzedClaim}"`);
+      }
+    }
+
+    // ════════════════════════════════════════════════════════════════
+    // STEP C: URL CONTENT EXTRACTION
+    // ════════════════════════════════════════════════════════════════
+    if (inputType === 'url') {
+      console.log('--- URL VERIFICATION ---');
+      let extractedTitle = '';
+      let extractedText = '';
+      let ogImage = '';
+
+      // Attempt 1: Direct fetch with browser-like headers
+      try {
+        const urlRes = await fetch(claim, {
+          headers: {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+            'Accept-Language': 'en-US,en;q=0.9',
+          },
+          redirect: 'follow',
+        });
+
+        if (urlRes.ok) {
+          const html = await urlRes.text();
+          console.log(`✓ Fetched URL content: ${html.length} bytes`);
+
+          // Extract metadata
+          const titleMatch = html.match(/<title[^>]*>([^<]+)<\/title>/i);
+          const ogTitleMatch = html.match(/<meta[^>]*property="og:title"[^>]*content="([^"]+)"/i)
+            || html.match(/<meta[^>]*content="([^"]+)"[^>]*property="og:title"/i);
+          const ogDescMatch = html.match(/<meta[^>]*property="og:description"[^>]*content="([^"]+)"/i)
+            || html.match(/<meta[^>]*content="([^"]+)"[^>]*property="og:description"/i);
+          const ogImageMatch = html.match(/<meta[^>]*property="og:image"[^>]*content="([^"]+)"/i)
+            || html.match(/<meta[^>]*content="([^"]+)"[^>]*property="og:image"/i);
+          const descMatch = html.match(/<meta[^>]*name="description"[^>]*content="([^"]+)"/i);
+
+          extractedTitle = ogTitleMatch?.[1] || titleMatch?.[1] || '';
+          const description = ogDescMatch?.[1] || descMatch?.[1] || '';
+          ogImage = ogImageMatch?.[1] || '';
+
+          // Extract article body text
+          const articleMatch = html.match(/<article[^>]*>([\s\S]*?)<\/article>/i);
+          const mainMatch = html.match(/<main[^>]*>([\s\S]*?)<\/main>/i);
+          const rawBody = articleMatch?.[1] || mainMatch?.[1] || html;
+
+          const paragraphs = rawBody.match(/<p[^>]*>([\s\S]*?)<\/p>/gi) || [];
+          extractedText = paragraphs
+            .map((p: string) => p.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim())
+            .filter((p: string) => p.length > 60)
+            .slice(0, 15)
+            .join(' ');
+
+          if (!extractedText && description) extractedText = description;
+
+          console.log(`✓ Extracted title: "${extractedTitle.substring(0, 60)}"`);
+          console.log(`✓ Extracted text: ${extractedText.length} chars`);
+        } else {
+          console.warn(`URL fetch returned ${urlRes.status}`);
+        }
+      } catch (fetchErr) {
+        console.warn('Direct URL fetch failed:', fetchErr);
+      }
+
+      // Attempt 2: If direct fetch failed or gave little content, use Serper to find the article
+      if (!extractedText || extractedText.length < 100) {
+        console.log('Falling back to Serper search for URL content...');
+        try {
+          const domain = new URL(claim).hostname.replace('www.', '');
+          const searchQuery = extractedTitle
+            ? `"${extractedTitle}" site:${domain}`
+            : `site:${domain} ${claim.split('/').pop()?.replace(/-/g, ' ') || ''}`;
+
+          const newsData = await serperSearch(searchQuery, serperKeys, 'news', 5);
+          const organic = await serperSearch(searchQuery, serperKeys, 'search', 5);
+
+          const results = [...(newsData?.news || []), ...(organic?.organic || [])];
+          if (results.length > 0) {
+            extractedTitle = extractedTitle || results[0]?.title || '';
+            extractedText = results.map((r: any) => r.snippet || '').filter(Boolean).join(' ');
+            console.log(`✓ Serper fallback: found ${results.length} results for URL`);
+          }
+        } catch (serperErr) {
+          console.warn('Serper URL fallback failed:', serperErr);
+        }
+      }
+
+      // Analyze extracted content with AI
+      const contentPrompt = `You are a content analyst. Analyze this URL and its extracted content.
+
+URL: ${claim}
+Title: ${extractedTitle || '(not extracted)'}
+Extracted text (first ~2000 chars):
+${(extractedText || '(no content extracted — use URL context only)').substring(0, 2000)}
+
+Current date: ${currentDate}
+
+Extract key information. Return ONLY valid JSON:
+{
+  "contentType": "<article|social-post|video|image|product|unknown>",
+  "summary": "<2-3 sentence plain-language summary of what this URL is about>",
+  "mainClaim": "<the primary verifiable claim made in this content>",
+  "headline": "<the article/page headline>",
+  "publishedDate": "<YYYY-MM-DD or empty string>",
+  "sourceCredibility": <0-100>,
+  "topicCategory": "<political|health|financial|science|social|environmental|general>"
+}`;
+
+      let urlContentAnalysis: any = {};
+      try {
+        const raw = await callAI(aiApiKey, aiBaseUrl, [
+          { role: 'system', content: 'You are a URL content analyst. Respond with valid JSON only.' },
+          { role: 'user', content: contentPrompt },
+        ]);
+        urlContentAnalysis = parseJSON(raw);
+        console.log('✓ URL content analysis:', JSON.stringify(urlContentAnalysis).substring(0, 200));
+      } catch (e) {
+        console.error('URL content analysis error:', e);
+        urlContentAnalysis = {
+          contentType: 'article',
+          summary: extractedTitle || claim,
+          mainClaim: extractedTitle || claim,
         };
       }
-    }
 
-    // Step 1: If URL input, fetch and analyze the content first
-    
-    if (inputType === 'url' && claim.startsWith('http')) {
-      console.log('Step 1: Fetching URL content...');
-      try {
-        const urlResponse = await fetch(claim, {
-          headers: {
-            'User-Agent': 'Mozilla/5.0 (compatible; TruthLensBot/1.0)'
-          }
-        });
-        
-        if (urlResponse.ok) {
-          const html = await urlResponse.text();
-          console.log(`✓ Fetched ${html.length} bytes of content`);
-          
-          // Extract metadata and content using basic parsing
-          const titleMatch = html.match(/<title[^>]*>([^<]+)<\/title>/i);
-          const ogTitleMatch = html.match(/<meta[^>]*property="og:title"[^>]*content="([^"]+)"/i);
-          const ogDescMatch = html.match(/<meta[^>]*property="og:description"[^>]*content="([^"]+)"/i);
-          const ogImageMatch = html.match(/<meta[^>]*property="og:image"[^>]*content="([^"]+)"/i);
-          const ogVideoMatch = html.match(/<meta[^>]*property="og:video"[^>]*content="([^"]+)"/i);
-          
-          const title = ogTitleMatch?.[1] || titleMatch?.[1] || 'Unknown';
-          const description = ogDescMatch?.[1] || '';
-          const ogImage = ogImageMatch?.[1];
-          const ogVideo = ogVideoMatch?.[1];
-          
-          // Extract article text (simplified)
-          let articleText = '';
-          const paragraphs = html.match(/<p[^>]*>([^<]+)<\/p>/gi);
-          if (paragraphs && paragraphs.length > 0) {
-            articleText = paragraphs
-              .slice(0, 10) // First 10 paragraphs
-              .map(p => p.replace(/<[^>]+>/g, '').trim())
-              .filter(p => p.length > 50)
-              .join(' ');
-          }
-          
-          // Analyze content with AI to understand what it's about
-          console.log('Analyzing URL content with AI...');
-          const analysisPrompt = `Analyze this web content and extract key information:
+      contentAnalysis = {
+        contentType: urlContentAnalysis.contentType || 'article',
+        summary: urlContentAnalysis.summary || extractedTitle,
+        mainClaim: urlContentAnalysis.mainClaim,
+        extractedText: extractedText.substring(0, 500),
+        extractedMedia: ogImage
+          ? [{ type: 'image', url: ogImage, caption: extractedTitle }]
+          : [],
+      };
 
-**URL:** ${claim}
-**Title:** ${title}
-**Description:** ${description}
-**Content excerpt:** ${articleText.substring(0, 1000)}
-**Has image:** ${ogImage ? 'Yes' : 'No'}
-**Has video:** ${ogVideo ? 'Yes' : 'No'}
-
-Provide a JSON response with:
-{
-  "contentType": "<article|image|video|social-post|mixed>",
-  "summary": "<2-3 sentence summary of what this content is about>",
-  "mainClaim": "<extract the main verifiable claim from this content>",
-  "extractedMedia": [
-    {"type": "image|video", "url": "<url>", "caption": "<description>"}
-  ]
-}
-
-Return ONLY the JSON object.`;
-
-          const analysisResponse = await fetch(`${aiBaseUrl}/chat/completions`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${aiApiKey}`,
-            },
-            body: JSON.stringify({
-              model: 'google/gemini-3-flash-preview',
-              messages: [
-                { role: 'system', content: 'You are a content analyzer. Respond with valid JSON only.' },
-                { role: 'user', content: analysisPrompt }
-              ],
-              temperature: 0.3,
-            }),
-          });
-          
-          if (analysisResponse.ok) {
-            const analysisData = await analysisResponse.json();
-            const analysisContent = analysisData.choices?.[0]?.message?.content ?? '';
-            try {
-              const cleanedAnalysis = analysisContent
-                .replace(/```json\n?/g, '')
-                .replace(/```\n?/g, '')
-                .trim();
-              contentAnalysis = JSON.parse(cleanedAnalysis);
-              contentAnalysis.extractedText = articleText.substring(0, 500);
-              
-              // Add extracted media from Open Graph
-              if (!contentAnalysis.extractedMedia) {
-                contentAnalysis.extractedMedia = [];
-              }
-              if (ogImage && !contentAnalysis.extractedMedia.some((m: any) => m.url === ogImage)) {
-                contentAnalysis.extractedMedia.push({
-                  type: 'image',
-                  url: ogImage,
-                  caption: title
-                });
-              }
-              if (ogVideo && !contentAnalysis.extractedMedia.some((m: any) => m.url === ogVideo)) {
-                contentAnalysis.extractedMedia.push({
-                  type: 'video',
-                  url: ogVideo,
-                  caption: title
-                });
-              }
-              
-              // Use the main claim extracted from content for verification
-              if (contentAnalysis.mainClaim) {
-                analyzedClaim = contentAnalysis.mainClaim;
-                console.log(`✓ Extracted main claim: ${analyzedClaim}`);
-              }
-            } catch (e) {
-              console.error('Failed to parse content analysis:', e);
-            }
-          }
-        }
-      } catch (error) {
-        console.error('URL fetch error:', error);
-        // Continue with original claim if URL fetch fails
+      // Use the extracted headline/claim for verification
+      if (urlContentAnalysis.mainClaim) {
+        analyzedClaim = urlContentAnalysis.mainClaim;
+      } else if (extractedTitle) {
+        analyzedClaim = extractedTitle;
       }
+      console.log(`✓ URL claim to verify: "${analyzedClaim.substring(0, 80)}"`);
     }
 
-    console.log('Step 2: Searching web for current information and images...');
+    // ════════════════════════════════════════════════════════════════
+    // STEP D: WEB SEARCH for evidence
+    // ════════════════════════════════════════════════════════════════
+    console.log('--- WEB SEARCH ---', analyzedClaim.substring(0, 80));
 
-    // Try each Serper API key in sequence until one succeeds
-    let serperData: any = null;
-    let lastError: Error | null = null;
+    const [searchData, imageData] = await Promise.all([
+      serperSearch(analyzedClaim, serperKeys, 'search', 10),
+      serperSearch(analyzedClaim, serperKeys, 'images', 10),
+    ]);
 
-    for (let i = 0; i < serperApiKeys.length; i++) {
-      const currentKey = serperApiKeys[i];
-      console.log(`Trying Serper API key ${i + 1}/${serperApiKeys.length}...`);
+    const searchResults: SerperResult[] = searchData?.organic || [];
+    const imageResults: any[] = imageData?.images || [];
+    console.log(`✓ ${searchResults.length} search results, ${imageResults.length} images`);
 
-      try {
-        const serperResponse = await fetch('https://google.serper.dev/search', {
-          method: 'POST',
-          headers: {
-            'X-API-KEY': currentKey,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            q: claim,
-            num: 10,
-            gl: 'us',
-            hl: 'en',
-          }),
-        });
-
-        if (serperResponse.ok) {
-          serperData = await serperResponse.json();
-          console.log(`✓ Search successful with API key ${i + 1}`);
-          break; // Success, exit loop
-        } else if (serperResponse.status === 429) {
-          // Rate limit hit, try next key
-          console.log(`✗ API key ${i + 1} rate limit exceeded (429), trying next...`);
-          lastError = new Error(`API key ${i + 1} rate limit exceeded`);
-          continue;
-        } else {
-          // Other error, try next key
-          const errorText = await serperResponse.text();
-          console.error(`✗ API key ${i + 1} error (${serperResponse.status}):`, errorText);
-          lastError = new Error(`API key ${i + 1} failed: ${serperResponse.status}`);
-          continue;
-        }
-      } catch (error) {
-        console.error(`✗ API key ${i + 1} request failed:`, error);
-        lastError = error instanceof Error ? error : new Error('Unknown error');
-        continue;
-      }
-    }
-
-    // If all keys failed, throw error
-    if (!serperData) {
-      console.error('All Serper API keys failed');
-      throw new Error(`Web search failed: ${lastError?.message || 'All API keys exhausted'}`);
-    }
-
-    const searchResults: SerperResult[] = serperData.organic || [];
-
-    // Fetch relevant images for the claim
-    console.log('Fetching relevant images...');
-    let imageResults: any[] = [];
-    
-    for (let i = 0; i < serperApiKeys.length; i++) {
-      try {
-        const imageResponse = await fetch('https://google.serper.dev/images', {
-          method: 'POST',
-          headers: {
-            'X-API-KEY': serperApiKeys[i],
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            q: claim,
-            num: 10,
-            gl: 'us',
-          }),
-        });
-
-        if (imageResponse.ok) {
-          const imageData = await imageResponse.json();
-          imageResults = imageData.images || [];
-          console.log(`✓ Found ${imageResults.length} relevant images`);
-          break;
-        }
-      } catch (error) {
-        console.error(`Image search with key ${i + 1} failed:`, error);
-        continue;
-      }
-    }
-    
-    console.log(`Found ${searchResults.length} search results`);
-
-    // Build search context for AI
-    const searchContext = searchResults.slice(0, 8).map((result, idx) => 
-      `[${idx + 1}] ${result.title}\n   Source: ${result.link}\n   Snippet: ${result.snippet}\n   ${result.date ? `Date: ${result.date}` : ''}`
+    const searchContext = searchResults.slice(0, 8).map((r, i) =>
+      `[${i + 1}] ${r.title}\n   Source: ${r.link}\n   Snippet: ${r.snippet}${r.date ? `\n   Date: ${r.date}` : ''}`
     ).join('\n\n');
-    
-    // Add content analysis context if available
-    const contentContext = contentAnalysis ? `
 
-**ANALYZED URL CONTENT:**
-Content Type: ${contentAnalysis.contentType}
-Summary: ${contentAnalysis.summary}
-${contentAnalysis.extractedText ? `Extracted Text: ${contentAnalysis.extractedText}` : ''}
-` : '';
+    const contentContext = contentAnalysis
+      ? `\n**ANALYZED CONTENT:**\nType: ${contentAnalysis.contentType}\nSummary: ${contentAnalysis.summary}\n`
+      : '';
 
-    // Create detailed verification prompt with real search results
-    const verificationPrompt = `You are TruthLens AI, an expert fact-checking system. Analyze the following claim using REAL web search results from Google.
+    // ════════════════════════════════════════════════════════════════
+    // STEP E: AI VERIFICATION ANALYSIS
+    // ════════════════════════════════════════════════════════════════
+    console.log('--- AI ANALYSIS ---');
 
-**IMPORTANT CONTEXT:**
-- Current date: ${formattedDate}
-- You are operating in March 2026
-- You have access to ACTUAL search results from the web (below)
-- Base your analysis ONLY on the search results provided
-- DO NOT use your training data - use ONLY the search results
+    const verificationPrompt = `You are TruthLens AI, a professional fact-checking system. Today is ${currentDate} (year 2026).
 
 **Claim to verify:** "${analyzedClaim}"
 **Original input:** "${claim}"
 **Input type:** ${inputType}
 ${contentContext}
 
-**REAL WEB SEARCH RESULTS (from Google via Serper API):**
-${searchContext || 'No search results found for this claim.'}
+**REAL-TIME WEB SEARCH RESULTS:**
+${searchContext || 'No search results found.'}
 
-Your task:
-1. Analyze the SEARCH RESULTS to verify the claim
-2. Determine if the search results support, contradict, or provide mixed evidence
-3. Calculate truth score (0-100) based ONLY on the search results above
-4. Provide a detailed explanation referencing specific search results
-5. Use the ACTUAL sources from the search results (extract from the links above)
-6. Identify related claims based on the search results
+Instructions:
+- Base your analysis ONLY on the search results above
+- Do NOT use training data as primary source — use the search results
+- Reference specific results in your explanation (e.g. "According to [1]...")
+- If results clearly confirm: score 80–100
+- If results mostly confirm with caveats: score 60–79
+- If results conflict: score 40–59
+- If results mostly contradict: score 20–39
+- If no results support or explicitly debunked: score 0–19
 
-**Output format (MUST be valid JSON):**
+Return ONLY valid JSON:
 {
-  "truthScore": <number 0-100>,
+  "truthScore": <0-100>,
   "status": "<true|mostly-true|disputed|mostly-false|false>",
-  "explanation": "<detailed 2-3 sentence explanation>",
+  "explanation": "<2-3 sentence explanation referencing search results>",
   "sources": [
     {
-      "name": "<source name>",
-      "url": "<https://example.com/article>",
+      "name": "<outlet name>",
+      "url": "<exact URL from search results>",
       "credibilityScore": <0-100>,
       "publishedDate": "<YYYY-MM-DD>",
-      "excerpt": "<relevant quote from source>",
+      "excerpt": "<relevant quote or snippet>",
       "stance": "<supports|contradicts|neutral>",
-      "imageUrl": "<https://example.com/image.jpg or null>"
+      "imageUrl": null
     }
   ],
   "relatedClaims": [
-    {
-      "claim": "<related claim text>",
-      "truthScore": <0-100>,
-      "status": "<status>"
-    }
+    { "claim": "<related claim>", "truthScore": <0-100>, "status": "<status>" }
   ]
-}
+}`;
 
-**Guidelines:**
-- truthScore 80-100 = "true" (multiple credible sources confirm)
-- truthScore 60-79 = "mostly-true" (mostly confirmed with minor inconsistencies)
-- truthScore 40-59 = "disputed" (conflicting evidence)
-- truthScore 20-39 = "mostly-false" (mostly contradicted)
-- truthScore 0-19 = "false" (no credible sources confirm, or explicitly debunked)
-- Extract 3-5 ACTUAL sources from the search results above (use their exact URLs)
-- Assign credibility scores: Major news (BBC, Reuters, AP, CNN): 92-96, Regional news: 85-90, Blogs: 60-75
-- Extract actual published dates from search results if available
-- Your explanation MUST reference specific search results (e.g., "According to result [1]...")
-- If search results don't mention the claim at all, score should be very low (0-25)
-- If NO search results found, explicitly state "No credible sources found" and score 0-15
-
-Return ONLY the JSON object, no other text.`;
-
-    console.log('Step 3: Analyzing search results with AI...');
-
-    // Call OnSpace AI to analyze the search results
-    const aiResponse = await fetch(`${aiBaseUrl}/chat/completions`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${aiApiKey}`,
+    const aiRaw = await callAI(aiApiKey, aiBaseUrl, [
+      {
+        role: 'system',
+        content: `You are TruthLens AI, operating in April 2026. Fact-check claims using ONLY the provided search results. Respond with valid JSON only.`,
       },
-      body: JSON.stringify({
-        model: 'google/gemini-3-flash-preview',
-        messages: [
-          {
-            role: 'system',
-            content: `You are TruthLens AI, a professional fact-checking system operating in March 2026. You analyze REAL web search results to verify claims. Always respond with valid JSON only. Base your analysis ONLY on the search results provided - do NOT use your training data.`
-          },
-          {
-            role: 'user',
-            content: verificationPrompt
-          }
-        ],
-        temperature: 0.3, // Lower temperature for more factual responses
-      }),
-    });
+      { role: 'user', content: verificationPrompt },
+    ], 0.25);
 
-    if (!aiResponse.ok) {
-      const errorText = await aiResponse.text();
-      console.error('OnSpace AI error:', errorText);
-      throw new Error(`OnSpace AI request failed: ${aiResponse.status} ${errorText}`);
-    }
-
-    const aiData = await aiResponse.json();
-    const aiContent = aiData.choices?.[0]?.message?.content ?? '';
-    
-    console.log('AI response received:', aiContent.substring(0, 200));
-
-    // Parse AI response
     let result: VerificationResult;
     try {
-      // Remove markdown code blocks if present
-      const cleanedContent = aiContent
-        .replace(/```json\n?/g, '')
-        .replace(/```\n?/g, '')
-        .trim();
-      
-      result = JSON.parse(cleanedContent);
-    } catch (parseError) {
-      console.error('Failed to parse AI response:', parseError, 'Content:', aiContent);
+      result = parseJSON(aiRaw);
+    } catch (e) {
+      console.error('Failed to parse AI response:', e, aiRaw.substring(0, 300));
       throw new Error('AI response parsing failed');
     }
 
-    // Add IDs and images to sources
-    const sourcesWithIds = result.sources.map((source, index) => {
-      // Try to match source URL with a relevant image from search results
+    // Attach images to sources
+    const sourcesWithIds = (result.sources || []).map((source, idx) => {
       let imageUrl = source.imageUrl;
-      
       if (!imageUrl && imageResults.length > 0) {
-        // Assign images in order, cycling through available images
-        const imageIndex = index % imageResults.length;
-        imageUrl = imageResults[imageIndex]?.imageUrl;
+        imageUrl = imageResults[idx % imageResults.length]?.imageUrl || null;
       }
-      
-      return {
-        id: `src-${Date.now()}-${index}`,
-        ...source,
-        imageUrl: imageUrl || null
-      };
+      return { id: `src-${Date.now()}-${idx}`, ...source, imageUrl };
     });
 
-    // Get user if authenticated
+    // ════════════════════════════════════════════════════════════════
+    // STEP F: SAVE TO DATABASE
+    // ════════════════════════════════════════════════════════════════
     const authHeader = req.headers.get('Authorization');
     let userId: string | null = null;
-    
+
     if (authHeader) {
       const token = authHeader.replace('Bearer ', '');
-      const supabaseClient = createClient(
+      const anonClient = createClient(
         Deno.env.get('SUPABASE_URL') ?? '',
         Deno.env.get('SUPABASE_ANON_KEY') ?? ''
       );
-      
-      const { data: { user } } = await supabaseClient.auth.getUser(token);
+      const { data: { user } } = await anonClient.auth.getUser(token);
       userId = user?.id ?? null;
     }
 
-    // Save to database
     const supabaseAdmin = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
-    const { data: savedVerification, error: saveError } = await supabaseAdmin
+    const { data: saved, error: saveError } = await supabaseAdmin
       .from('verifications')
       .insert({
         user_id: userId,
-        claim: analyzedClaim, // Use descriptive name for images/videos instead of URL
+        claim: analyzedClaim,
         input_type: inputType,
         truth_score: result.truthScore,
         status: result.status,
         explanation: result.explanation,
         sources: sourcesWithIds,
-        related_claims: result.relatedClaims,
-        media_url: mediaUrl
+        related_claims: result.relatedClaims || [],
+        media_url: mediaUrl || null,
       })
       .select()
       .single();
 
     if (saveError) {
-      console.error('Database save error:', saveError);
+      console.error('DB save error:', saveError);
       throw new Error(`Failed to save verification: ${saveError.message}`);
     }
 
-    console.log('Verification saved successfully:', savedVerification.id);
+    console.log('✓ Saved verification:', saved.id);
 
-    // Update trending claims ONLY for authenticated users (never anonymous)
+    // Update trending (authenticated only)
     if (userId) {
       supabaseAdmin
         .rpc('increment_trending_claim', {
           claim_text: analyzedClaim,
           score: result.truthScore,
           claim_status: result.status,
-          user_id_param: userId
+          user_id_param: userId,
         })
         .then(({ error }) => {
           if (error) console.error('Trending update error:', error);
-          else console.log('Trending updated for authenticated user:', userId);
         });
-    } else {
-      console.log('Skipping trending update — anonymous verification');
     }
+
+    console.log('=== verify-claim complete ===');
 
     return new Response(
       JSON.stringify({
-        id: savedVerification.id,
+        id: saved.id,
         ...result,
         sources: sourcesWithIds,
-        contentAnalysis
+        contentAnalysis,
       }),
-      { 
-        status: 200, 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-      }
+      { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
 
   } catch (error) {
-    console.error('Verification error:', error);
+    console.error('verify-claim fatal error:', error);
     return new Response(
-      JSON.stringify({ 
-        error: error instanceof Error ? error.message : 'Verification failed' 
-      }),
-      { 
-        status: 500, 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-      }
+      JSON.stringify({ error: error instanceof Error ? error.message : 'Verification failed' }),
+      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }
 });
