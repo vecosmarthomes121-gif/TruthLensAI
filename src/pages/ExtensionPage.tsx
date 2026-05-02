@@ -1,4 +1,5 @@
 import { useNavigate } from 'react-router-dom';
+import { useState } from 'react';
 import {
   Shield,
   CheckCircle,
@@ -14,7 +15,12 @@ import {
   Star,
   Chrome,
   Layers,
+  Loader2,
+  Mail,
+  PartyPopper,
 } from 'lucide-react';
+import { supabase } from '@/lib/supabase';
+import { toast } from 'sonner';
 
 const methods = [
   {
@@ -74,6 +80,31 @@ const features = [
 
 export default function ExtensionPage() {
   const navigate = useNavigate();
+  const [email, setEmail] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
+
+  const handleNotify = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!email.trim() || submitting) return;
+    setSubmitting(true);
+    const { error } = await supabase
+      .from('extension_waitlist')
+      .insert({ email: email.trim().toLowerCase() });
+    setSubmitting(false);
+    if (error) {
+      if (error.code === '23505') {
+        toast.info("You're already on the list — we'll notify you when it launches!");
+        setSubmitted(true);
+      } else {
+        toast.error('Something went wrong. Please try again.');
+      }
+      return;
+    }
+    setSubmitted(true);
+    setEmail('');
+    toast.success("You're on the list! We'll email you when the extension launches.");
+  };
 
   return (
     <div className="flex flex-col">
@@ -322,14 +353,48 @@ export default function ExtensionPage() {
       </section>
 
       {/* ── Notify CTA ──────────────────────────────────────────────── */}
-      <section className="py-20">
+      <section className="py-20" id="notify">
         <div className="container">
-          <div className="bg-gradient-to-br from-blue-600 to-purple-700 rounded-2xl p-12 text-center text-white max-w-3xl mx-auto">
-            <Star className="h-10 w-10 mx-auto mb-4 text-yellow-300" />
-            <h2 className="text-3xl font-bold mb-4">Extension Launching Soon</h2>
-            <p className="text-white/85 mb-8 max-w-xl mx-auto leading-relaxed">
-              We're putting the final touches on the extension before publishing. In the meantime, the full TruthLens experience is available on the web — same AI, same results.
-            </p>
+          <div className="bg-gradient-to-br from-blue-600 to-purple-700 rounded-2xl p-10 lg:p-14 text-center text-white max-w-3xl mx-auto">
+            {submitted ? (
+              <>
+                <PartyPopper className="h-12 w-12 mx-auto mb-4 text-yellow-300" />
+                <h2 className="text-3xl font-bold mb-3">You're on the List!</h2>
+                <p className="text-white/85 mb-8 max-w-lg mx-auto leading-relaxed">
+                  We'll send you an email the moment TruthLens AI lands on the Chrome Web Store. In the meantime, the full experience is available on the web.
+                </p>
+              </>
+            ) : (
+              <>
+                <Bell className="h-10 w-10 mx-auto mb-4 text-yellow-300" />
+                <h2 className="text-3xl font-bold mb-3">Get Notified at Launch</h2>
+                <p className="text-white/80 mb-8 max-w-lg mx-auto leading-relaxed">
+                  Drop your email below and we'll send you a one-time notification the moment the extension goes live on the Chrome Web Store — no spam, ever.
+                </p>
+                <form onSubmit={handleNotify} className="flex flex-col sm:flex-row gap-3 max-w-md mx-auto mb-8">
+                  <div className="flex-1 relative">
+                    <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-white/50 pointer-events-none" />
+                    <input
+                      type="email"
+                      required
+                      value={email}
+                      onChange={e => setEmail(e.target.value)}
+                      placeholder="your@email.com"
+                      className="w-full pl-10 pr-4 py-3 rounded-xl bg-white/15 border border-white/25 text-white placeholder:text-white/50 focus:outline-none focus:ring-2 focus:ring-white/40 text-sm"
+                    />
+                  </div>
+                  <button
+                    type="submit"
+                    disabled={submitting || !email.trim()}
+                    className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-white text-blue-700 font-bold hover:shadow-xl transition-shadow disabled:opacity-60 whitespace-nowrap"
+                  >
+                    {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Bell className="h-4 w-4" />}
+                    Notify Me
+                  </button>
+                </form>
+                <p className="text-white/50 text-xs mb-8">One email only. Unsubscribe anytime. No spam.</p>
+              </>
+            )}
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <button
                 onClick={() => navigate('/verify')}

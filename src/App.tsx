@@ -14,6 +14,7 @@ import TeamDetailPage from '@/pages/TeamDetailPage';
 import TeamPublicPage from '@/pages/TeamPublicPage';
 import TemplatesPage from '@/pages/TemplatesPage';
 import ExtensionPage from '@/pages/ExtensionPage';
+import AboutPage from '@/pages/AboutPage';
 import NotFoundPage from '@/pages/NotFoundPage';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/stores/authStore';
@@ -70,6 +71,7 @@ function App() {
             <Route path="/teams/:teamId/public" element={<TeamPublicPage />} />
             <Route path="/templates" element={<TemplatesPage />} />
             <Route path="/extension" element={<ExtensionPage />} />
+            <Route path="/about" element={<AboutPage />} />
             <Route path="/history" element={<HistoryPage />} />
             <Route path="*" element={<NotFoundPage />} />
           </Routes>
