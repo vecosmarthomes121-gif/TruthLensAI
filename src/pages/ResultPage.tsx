@@ -10,7 +10,8 @@ import {
   Share2, ArrowLeft, FileText, ExternalLink, Link as LinkIcon,
   Image as ImageIcon, Video as VideoIcon, Download, Loader2,
   AlertTriangle, CheckCircle, XCircle, ShieldAlert, ShieldCheck,
-  AlertOctagon, Zap, Mic, Film, Eye, Search,
+  AlertOctagon, Zap, Mic, Film, Eye, Search, Server, Activity,
+  BarChart2, Radio,
 } from 'lucide-react';
 import { formatDate } from '@/lib/utils';
 import { toast } from 'sonner';
@@ -289,37 +290,126 @@ export default function ResultPage() {
         {/* ── IMAGE DEEPFAKE ANALYSIS ────────────────────────────── */}
         {ia && (
           <div className="mb-8">
-            {/* Alert banner if deepfake */}
-            {(ia.deepfakeDetected || ia.isAiGenerated || ia.manipulationDetected) && (
+            {/* Alert banner */}
+            {(ia.suspicionScore >= 50 || ia.deepfakeDetected || ia.isAiGenerated || ia.manipulationDetected) && (
               <div className={cn(
                 'flex items-start gap-3 p-4 rounded-xl mb-5 border',
-                ia.deepfakeDetected
+                ia.suspicionScore >= 75
                   ? 'bg-red-50 border-red-200 text-red-800 dark:bg-red-950/20 dark:border-red-800'
-                  : 'bg-orange-50 border-orange-200 text-orange-800 dark:bg-orange-950/20 dark:border-orange-800'
+                  : ia.suspicionScore >= 50
+                  ? 'bg-orange-50 border-orange-200 text-orange-800 dark:bg-orange-950/20 dark:border-orange-800'
+                  : 'bg-yellow-50 border-yellow-200 text-yellow-800 dark:bg-yellow-950/20 dark:border-yellow-800'
               )}>
                 <ShieldAlert className="h-6 w-6 flex-shrink-0 mt-0.5" />
                 <div>
                   <p className="font-bold text-base mb-0.5">
-                    {ia.deepfakeDetected
-                      ? 'Deepfake Detected — This image may be fabricated to spread misinformation'
-                      : ia.isAiGenerated
-                      ? 'AI-Generated Image — This image was likely created by an AI model, not a real photograph'
-                      : 'Manipulation Detected — This image shows signs of editing or doctoring'}
+                    {ia.suspicionScore >= 75
+                      ? 'HIGH CONFIDENCE FAKE — Do not trust this image'
+                      : ia.suspicionScore >= 50
+                      ? 'Significant Manipulation Indicators — Verify this image independently'
+                      : 'Mixed Signals Detected — Treat with caution'}
                   </p>
-                  <p className="text-sm opacity-90">{ia.manipulationDetails || 'Treat this content with caution before sharing.'}</p>
+                  <p className="text-sm opacity-90">{ia.recommendation || 'Treat this content with caution before sharing.'}</p>
                 </div>
               </div>
             )}
 
             <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
               <Eye className="h-5 w-5 text-primary" />
-              Image Forensic Analysis
+              Image Deepfake Detection Report
             </h2>
 
             <div className="grid md:grid-cols-2 gap-5">
-              {/* Overall verdict + scores */}
+
+              {/* ── Multi-engine suspicion score ── */}
+              <div className="bg-card border rounded-xl p-6 md:col-span-2">
+                <div className="flex flex-col md:flex-row md:items-center gap-6">
+                  {/* Score ring */}
+                  <div className="flex-shrink-0 flex flex-col items-center">
+                    <div className="relative">
+                      <svg width="120" height="120" viewBox="0 0 120 120">
+                        <circle cx="60" cy="60" r="50" fill="none" stroke="#e5e7eb" strokeWidth="12"/>
+                        <circle cx="60" cy="60" r="50" fill="none"
+                          stroke={ia.suspicionScore >= 75 ? '#ef4444' : ia.suspicionScore >= 50 ? '#f97316' : ia.suspicionScore >= 25 ? '#eab308' : '#22c55e'}
+                          strokeWidth="12"
+                          strokeDasharray="314"
+                          strokeDashoffset={314 - (314 * (ia.suspicionScore || 0)) / 100}
+                          strokeLinecap="round"
+                          transform="rotate(-90 60 60)"
+                        />
+                        <text x="60" y="55" textAnchor="middle" fill="currentColor" fontSize="24" fontWeight="800" fontFamily="sans-serif">{ia.suspicionScore ?? 0}</text>
+                        <text x="60" y="72" textAnchor="middle" fill="#6b7280" fontSize="10" fontFamily="sans-serif">/ 100</text>
+                      </svg>
+                    </div>
+                    <span className="text-xs text-muted-foreground mt-1 font-semibold">Suspicion Score</span>
+                  </div>
+
+                  {/* Verdict + confidence */}
+                  <div className="flex-1">
+                    <div className="flex items-center gap-3 mb-3 flex-wrap">
+                      <span className={cn(
+                        'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-sm font-bold',
+                        ia.suspicionScore >= 75 ? 'bg-red-100 text-red-800 border-red-300' :
+                        ia.suspicionScore >= 50 ? 'bg-orange-100 text-orange-800 border-orange-300' :
+                        ia.suspicionScore >= 25 ? 'bg-yellow-100 text-yellow-800 border-yellow-300' :
+                        'bg-green-100 text-green-800 border-green-300'
+                      )}>
+                        {ia.suspicionScore >= 75 ? <AlertOctagon className="h-4 w-4" /> :
+                         ia.suspicionScore >= 50 ? <AlertTriangle className="h-4 w-4" /> :
+                         ia.suspicionScore >= 25 ? <AlertTriangle className="h-4 w-4" /> :
+                         <ShieldCheck className="h-4 w-4" />}
+                        {ia.suspicionVerdict || 'ANALYZING'}
+                      </span>
+                      <span className={cn(
+                        'inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold border',
+                        ia.detectionConfidence === 'HIGH' ? 'bg-blue-100 text-blue-700 border-blue-200' :
+                        ia.detectionConfidence === 'MEDIUM' ? 'bg-purple-100 text-purple-700 border-purple-200' :
+                        'bg-gray-100 text-gray-600 border-gray-200'
+                      )}>
+                        <Activity className="h-3 w-3" />
+                        {ia.detectionConfidence || 'LOW'} CONFIDENCE
+                      </span>
+                    </div>
+                    <p className="text-sm text-muted-foreground leading-relaxed mb-4">{ia.recommendation}</p>
+
+                    {/* 3 engine summary badges */}
+                    <div className="flex flex-wrap gap-2">
+                      {/* BitMind */}
+                      <div className={cn(
+                        'inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold border',
+                        ia.bitmind?.status === 'unavailable' ? 'bg-gray-50 text-gray-400 border-gray-200' :
+                        ia.bitmind?.isFake ? 'bg-red-50 text-red-700 border-red-200' : 'bg-green-50 text-green-700 border-green-200'
+                      )}>
+                        <Server className="h-3 w-3" />
+                        BitMind: {ia.bitmind?.status === 'unavailable' ? 'N/A' : ia.bitmind?.isFake ? `FAKE (${ia.bitmind.confidence}%)` : `REAL (${ia.bitmind?.confidence ?? 0}%)`}
+                      </div>
+                      {/* SightEngine */}
+                      <div className={cn(
+                        'inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold border',
+                        ia.sightengine?.status === 'unavailable' ? 'bg-gray-50 text-gray-400 border-gray-200' :
+                        (ia.sightengine?.deepfakeScore >= 70 || ia.sightengine?.aiGeneratedScore >= 70) ? 'bg-red-50 text-red-700 border-red-200' : 'bg-green-50 text-green-700 border-green-200'
+                      )}>
+                        <Radio className="h-3 w-3" />
+                        SightEngine: {ia.sightengine?.status === 'unavailable' ? 'N/A' : `DF:${ia.sightengine?.deepfakeScore ?? 0}% AI:${ia.sightengine?.aiGeneratedScore ?? 0}%`}
+                      </div>
+                      {/* Reality Defender */}
+                      <div className={cn(
+                        'inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold border',
+                        ia.realitydefender?.status === 'unavailable' ? 'bg-gray-50 text-gray-400 border-gray-200' :
+                        ia.realitydefender?.result === 'FAKE' ? 'bg-red-50 text-red-700 border-red-200' :
+                        ia.realitydefender?.result === 'REAL' ? 'bg-green-50 text-green-700 border-green-200' : 'bg-yellow-50 text-yellow-700 border-yellow-200'
+                      )}>
+                        <BarChart2 className="h-3 w-3" />
+                        RealityDefender: {ia.realitydefender?.status === 'unavailable' ? 'N/A' : `${ia.realitydefender?.result} (${ia.realitydefender?.confidence ?? 0}%)`}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* ── AI forensic verdict + scores ── */}
               <div className="bg-card border rounded-xl p-6">
-                <h3 className="font-bold mb-4 text-base">Detection Results</h3>
+                <h3 className="font-bold mb-4 text-base">AI Forensic Analysis</h3>
                 <div className="flex items-center gap-3 mb-5">
                   <VerdictBadge verdict={ia.overallVerdict || 'UNCERTAIN'} />
                 </div>
@@ -329,19 +419,11 @@ export default function ResultPage() {
                     label="Authenticity Score"
                     color={ia.authenticityScore >= 70 ? 'bg-green-500' : ia.authenticityScore >= 40 ? 'bg-orange-500' : 'bg-red-500'}
                   />
-                  {ia.deepfakeDetected && (
-                    <ConfidenceBar
-                      value={ia.deepfakeConfidence || 0}
-                      label="Deepfake Confidence"
-                      color="bg-red-500"
-                    />
+                  {(ia.deepfakeDetected || ia.deepfakeConfidence > 0) && (
+                    <ConfidenceBar value={ia.deepfakeConfidence || 0} label="Deepfake Confidence" color="bg-red-500" />
                   )}
-                  {ia.isAiGenerated && (
-                    <ConfidenceBar
-                      value={ia.aiGenerationConfidence || 0}
-                      label="AI Generation Confidence"
-                      color="bg-orange-500"
-                    />
+                  {(ia.isAiGenerated || ia.aiGenerationConfidence > 0) && (
+                    <ConfidenceBar value={ia.aiGenerationConfidence || 0} label="AI Generation Confidence" color="bg-orange-500" />
                   )}
                 </div>
 
@@ -353,45 +435,74 @@ export default function ResultPage() {
                     </span>
                   </div>
                 )}
+
+                {ia.elaInterpretation && (
+                  <div className="mt-4 pt-4 border-t">
+                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1">ELA Analysis</p>
+                    <span className={cn(
+                      'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold',
+                      ia.elaInterpretation === 'UNIFORM' ? 'bg-orange-100 text-orange-700' :
+                      ia.elaInterpretation === 'PATCHY' ? 'bg-red-100 text-red-700' :
+                      'bg-green-100 text-green-700'
+                    )}>
+                      {ia.elaInterpretation === 'UNIFORM' ? '⚠️ UNIFORM (AI-generation indicator)' :
+                       ia.elaInterpretation === 'PATCHY' ? '🔴 PATCHY (splice/composite indicator)' :
+                       '✓ NORMAL (natural compression)'}
+                    </span>
+                  </div>
+                )}
               </div>
 
-              {/* Detection breakdown */}
+              {/* ── Quick checks ── */}
               <div className="bg-card border rounded-xl p-6">
                 <h3 className="font-bold mb-4 text-base">Forensic Checks</h3>
                 <div className="space-y-0 divide-y">
                   <div className="flex items-center justify-between py-2.5">
-                    <div className="flex items-center gap-2 text-sm">
-                      <AlertOctagon className="h-4 w-4 text-muted-foreground" /> Deepfake
-                    </div>
-                    {ia.deepfakeDetected
-                      ? <span className="text-xs font-bold text-red-600 bg-red-50 px-2 py-1 rounded-full">DETECTED</span>
-                      : <span className="text-xs font-bold text-green-600 bg-green-50 px-2 py-1 rounded-full">CLEAR</span>}
+                    <div className="flex items-center gap-2 text-sm"><AlertOctagon className="h-4 w-4 text-muted-foreground" /> Deepfake</div>
+                    {ia.deepfakeDetected ? <span className="text-xs font-bold text-red-600 bg-red-50 px-2 py-1 rounded-full">DETECTED</span> : <span className="text-xs font-bold text-green-600 bg-green-50 px-2 py-1 rounded-full">CLEAR</span>}
                   </div>
                   <div className="flex items-center justify-between py-2.5">
-                    <div className="flex items-center gap-2 text-sm">
-                      <Zap className="h-4 w-4 text-muted-foreground" /> AI Generated
-                    </div>
-                    {ia.isAiGenerated
-                      ? <span className="text-xs font-bold text-orange-600 bg-orange-50 px-2 py-1 rounded-full">DETECTED</span>
-                      : <span className="text-xs font-bold text-green-600 bg-green-50 px-2 py-1 rounded-full">CLEAR</span>}
+                    <div className="flex items-center gap-2 text-sm"><Zap className="h-4 w-4 text-muted-foreground" /> AI Generated</div>
+                    {ia.isAiGenerated ? <span className="text-xs font-bold text-orange-600 bg-orange-50 px-2 py-1 rounded-full">DETECTED</span> : <span className="text-xs font-bold text-green-600 bg-green-50 px-2 py-1 rounded-full">CLEAR</span>}
                   </div>
                   <div className="flex items-center justify-between py-2.5">
-                    <div className="flex items-center gap-2 text-sm">
-                      <XCircle className="h-4 w-4 text-muted-foreground" /> Manipulation
-                    </div>
-                    {ia.manipulationDetected
-                      ? <span className="text-xs font-bold text-red-600 bg-red-50 px-2 py-1 rounded-full">DETECTED</span>
-                      : <span className="text-xs font-bold text-green-600 bg-green-50 px-2 py-1 rounded-full">CLEAR</span>}
+                    <div className="flex items-center gap-2 text-sm"><XCircle className="h-4 w-4 text-muted-foreground" /> Manipulation</div>
+                    {ia.manipulationDetected ? <span className="text-xs font-bold text-red-600 bg-red-50 px-2 py-1 rounded-full">DETECTED</span> : <span className="text-xs font-bold text-green-600 bg-green-50 px-2 py-1 rounded-full">CLEAR</span>}
+                  </div>
+                  <div className="flex items-center justify-between py-2.5">
+                    <div className="flex items-center gap-2 text-sm"><Eye className="h-4 w-4 text-muted-foreground" /> Face Present</div>
+                    <span className="text-xs font-bold text-muted-foreground bg-muted px-2 py-1 rounded-full">{ia.hasFace ? 'YES' : 'NO'}</span>
                   </div>
                 </div>
               </div>
 
-              {/* Forensic AI analysis */}
+              {/* ── Signal log ── */}
+              {ia.signalLog && ia.signalLog.length > 0 && (
+                <div className="bg-card border rounded-xl p-6 md:col-span-2">
+                  <h3 className="font-bold mb-3 text-base flex items-center gap-2">
+                    <Activity className="h-4 w-4 text-primary" /> Detection Signal Log
+                  </h3>
+                  <div className="space-y-2">
+                    {ia.signalLog.map((signal: string, i: number) => (
+                      <div key={i} className={cn(
+                        'flex items-start gap-2.5 px-3 py-2 rounded-lg text-sm font-mono',
+                        signal.includes('FAKE') || signal.includes('detected') || signal.includes('DETECTED') ? 'bg-red-50 text-red-800' :
+                        signal.includes('UNAVAILABLE') || signal.includes('N/A') ? 'bg-gray-50 text-gray-500' :
+                        signal.includes('authentic') || signal.includes('REAL') ? 'bg-green-50 text-green-800' :
+                        'bg-blue-50 text-blue-800'
+                      )}>
+                        <span className="flex-shrink-0 mt-0.5">{'›'}</span>
+                        <span>{signal}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* ── Forensic AI report ── */}
               <div className="bg-card border rounded-xl p-6 md:col-span-2">
                 <h3 className="font-bold mb-3 text-base">Forensic Report</h3>
-                <p className="text-sm text-muted-foreground leading-relaxed mb-4">
-                  {result.contentAnalysis?.summary}
-                </p>
+                <p className="text-sm text-muted-foreground leading-relaxed mb-4">{result.contentAnalysis?.summary}</p>
                 <div className="grid md:grid-cols-3 gap-4">
                   <AnomalyList items={ia.facialAnomalies || []} icon={AlertTriangle} label="Facial Anomalies" />
                   <AnomalyList items={ia.backgroundAnomalies || []} icon={AlertTriangle} label="Background Anomalies" />
@@ -411,7 +522,7 @@ export default function ResultPage() {
                 )}
               </div>
 
-              {/* Context results (debunking sources) */}
+              {/* ── Context / debunks ── */}
               {ia.contextResults && ia.contextResults.length > 0 && (
                 <div className="bg-card border rounded-xl p-6 md:col-span-2">
                   <h3 className="font-bold mb-3 text-base flex items-center gap-2">
@@ -429,7 +540,7 @@ export default function ResultPage() {
                 </div>
               )}
 
-              {/* Reverse image search */}
+              {/* ── Reverse image search ── */}
               {ia.reverseSearchResults && ia.reverseSearchResults.length > 0 && (
                 <div className="bg-card border rounded-xl p-6 md:col-span-2">
                   <h3 className="font-bold mb-3 text-base">Similar Images Found Online</h3>
