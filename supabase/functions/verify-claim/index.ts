@@ -134,79 +134,103 @@ function parseJSON(content: string): any {
   return JSON.parse(cleaned);
 }
 
-// ── Detection API: BitMind ────────────────────────────────────────────────────
-async function callBitMind(imageBuffer: ArrayBuffer, mimeType: string): Promise<{ isFake: boolean; confidence: number; status: 'ok' | 'unavailable' }> {
-  const apiKey = Deno.env.get('BITMIND_API_KEY');
-  if (!apiKey) return { isFake: false, confidence: 0, status: 'unavailable' };
+// ── Detection API: BitMind (with 5-key rotation) ─────────────────────────────
+async function callBitMind(
+  imageBuffer: ArrayBuffer,
+  mimeType: string,
+  keys: string[]
+): Promise<{ isFake: boolean; confidence: number; status: 'ok' | 'unavailable' }> {
+  if (keys.length === 0) return { isFake: false, confidence: 0, status: 'unavailable' };
 
-  try {
-    const formData = new FormData();
-    const blob = new Blob([imageBuffer], { type: mimeType });
-    formData.append('file', blob, `image.${mimeType.split('/')[1] || 'jpg'}`);
+  for (let i = 0; i < keys.length; i++) {
+    try {
+      const formData = new FormData();
+      const blob = new Blob([imageBuffer], { type: mimeType });
+      formData.append('file', blob, `image.${mimeType.split('/')[1] || 'jpg'}`);
 
-    const res = await fetch('https://api.bitmind.ai/oracle/v1/detect', {
-      method: 'POST',
-      headers: { 'x-api-key': apiKey },
-      body: formData,
-    });
+      const res = await fetch('https://api.bitmind.ai/oracle/v1/detect', {
+        method: 'POST',
+        headers: { 'x-api-key': keys[i] },
+        body: formData,
+      });
 
-    if (!res.ok) {
-      const errText = await res.text();
-      console.warn('BitMind API error:', res.status, errText.substring(0, 200));
-      return { isFake: false, confidence: 0, status: 'unavailable' };
+      if (res.status === 429 || res.status === 403) {
+        console.warn(`BitMind key ${i + 1} rate limited (${res.status}), trying next...`);
+        continue;
+      }
+
+      if (!res.ok) {
+        const errText = await res.text();
+        console.warn(`BitMind key ${i + 1} error:`, res.status, errText.substring(0, 200));
+        continue;
+      }
+
+      const data = await res.json();
+      console.log(`BitMind key ${i + 1} response:`, JSON.stringify(data).substring(0, 200));
+
+      const isFake = data.is_fake ?? data.fake ?? data.result === 'fake' ?? false;
+      const confidence = Math.round((data.confidence ?? data.score ?? 0) * 100);
+      return { isFake: Boolean(isFake), confidence, status: 'ok' };
+    } catch (err) {
+      console.error(`BitMind key ${i + 1} call error:`, err);
     }
-
-    const data = await res.json();
-    console.log('BitMind response:', JSON.stringify(data).substring(0, 200));
-
-    // Handle different response shapes
-    const isFake = data.is_fake ?? data.fake ?? data.result === 'fake' ?? false;
-    const confidence = Math.round((data.confidence ?? data.score ?? 0) * 100);
-    return { isFake: Boolean(isFake), confidence, status: 'ok' };
-  } catch (err) {
-    console.error('BitMind call error:', err);
-    return { isFake: false, confidence: 0, status: 'unavailable' };
   }
+
+  console.warn('All BitMind keys exhausted or failed');
+  return { isFake: false, confidence: 0, status: 'unavailable' };
 }
 
-// ── Detection API: SightEngine ───────────────────────────────────────────────
-async function callSightEngine(imageUrl: string): Promise<{ deepfakeScore: number; aiGeneratedScore: number; status: 'ok' | 'unavailable' }> {
-  const apiUser = Deno.env.get('SIGHTENGINE_API_USER');
-  const apiSecret = Deno.env.get('SIGHTENGINE_API_SECRET');
-  if (!apiUser || !apiSecret) return { deepfakeScore: 0, aiGeneratedScore: 0, status: 'unavailable' };
+// ── Detection API: SightEngine (with 5-key pair rotation) ───────────────────
+async function callSightEngine(
+  imageUrl: string,
+  credentials: Array<{ user: string; secret: string }>
+): Promise<{ deepfakeScore: number; aiGeneratedScore: number; status: 'ok' | 'unavailable' }> {
+  if (credentials.length === 0) return { deepfakeScore: 0, aiGeneratedScore: 0, status: 'unavailable' };
 
-  try {
-    const params = new URLSearchParams({
-      url: imageUrl,
-      models: 'deepfake,ai-generated',
-      api_user: apiUser,
-      api_secret: apiSecret,
-    });
+  for (let i = 0; i < credentials.length; i++) {
+    const { user, secret } = credentials[i];
+    try {
+      const params = new URLSearchParams({
+        url: imageUrl,
+        models: 'deepfake,ai-generated',
+        api_user: user,
+        api_secret: secret,
+      });
 
-    const res = await fetch(`https://api.sightengine.com/1.0/check.json?${params.toString()}`, {
-      method: 'GET',
-    });
+      const res = await fetch(`https://api.sightengine.com/1.0/check.json?${params.toString()}`, {
+        method: 'GET',
+      });
 
-    if (!res.ok) {
-      console.warn('SightEngine API error:', res.status);
-      return { deepfakeScore: 0, aiGeneratedScore: 0, status: 'unavailable' };
+      if (res.status === 429 || res.status === 403) {
+        console.warn(`SightEngine credential ${i + 1} rate limited (${res.status}), trying next...`);
+        continue;
+      }
+
+      if (!res.ok) {
+        console.warn(`SightEngine credential ${i + 1} error:`, res.status);
+        continue;
+      }
+
+      const data = await res.json();
+      console.log(`SightEngine credential ${i + 1} response:`, JSON.stringify(data).substring(0, 300));
+
+      if (data.status === 'failure') {
+        console.warn(`SightEngine credential ${i + 1} failure:`, data.error?.message);
+        // Don't retry on auth failure
+        if (data.error?.code === 'auth') continue;
+        continue;
+      }
+
+      const deepfakeScore = Math.round((data.deepfake?.score ?? 0) * 100);
+      const aiGeneratedScore = Math.round((data.ai_generated?.score ?? 0) * 100);
+      return { deepfakeScore, aiGeneratedScore, status: 'ok' };
+    } catch (err) {
+      console.error(`SightEngine credential ${i + 1} call error:`, err);
     }
-
-    const data = await res.json();
-    console.log('SightEngine response:', JSON.stringify(data).substring(0, 300));
-
-    if (data.status === 'failure') {
-      console.warn('SightEngine failure:', data.error?.message);
-      return { deepfakeScore: 0, aiGeneratedScore: 0, status: 'unavailable' };
-    }
-
-    const deepfakeScore = Math.round((data.deepfake?.score ?? 0) * 100);
-    const aiGeneratedScore = Math.round((data.ai_generated?.score ?? 0) * 100);
-    return { deepfakeScore, aiGeneratedScore, status: 'ok' };
-  } catch (err) {
-    console.error('SightEngine call error:', err);
-    return { deepfakeScore: 0, aiGeneratedScore: 0, status: 'unavailable' };
   }
+
+  console.warn('All SightEngine credentials exhausted or failed');
+  return { deepfakeScore: 0, aiGeneratedScore: 0, status: 'unavailable' };
 }
 
 // ── Detection API: Reality Defender ─────────────────────────────────────────
@@ -233,12 +257,9 @@ async function callRealityDefender(imageUrl: string): Promise<{ result: 'FAKE' |
     const uploadData = await res.json();
     console.log('Reality Defender upload response:', JSON.stringify(uploadData).substring(0, 300));
 
-    // Reality Defender returns async results — try to get result from upload response
-    // or use request_id to poll
     const requestId = uploadData.request_id ?? uploadData.id ?? null;
 
     if (!requestId) {
-      // Some responses include result directly
       if (uploadData.result || uploadData.prediction) {
         const raw = (uploadData.result ?? uploadData.prediction ?? 'UNCERTAIN').toUpperCase();
         const rdResult = raw === 'FAKE' ? 'FAKE' : raw === 'REAL' ? 'REAL' : 'UNCERTAIN';
@@ -307,7 +328,7 @@ function calculateSuspicionScore(params: {
   if (params.sightengine.status === 'ok') {
     if (params.sightengine.deepfakeScore >= 70 || params.sightengine.aiGeneratedScore >= 70) {
       score += 20;
-      signals.push(`SightEngine: deepfake=${params.sightengine.deepfakeScore}%, AI-generated=${params.sightengine.aiGeneratedScore}%`);
+      signals.push(`SightEngine: deepfake=${params.sightengine.deepfakeScore}%, AI-generated=${params.sightengine.aiGeneratedScore}% — FLAGGED`);
     } else {
       signals.push(`SightEngine: deepfake=${params.sightengine.deepfakeScore}%, AI-generated=${params.sightengine.aiGeneratedScore}%`);
     }
@@ -339,6 +360,8 @@ function calculateSuspicionScore(params: {
     } else if (ai.manipulationDetected) {
       score += 10;
       signals.push(`AI Forensics: Manipulation detected — ${ai.manipulationDetails}`);
+    } else {
+      signals.push(`AI Forensics: No manipulation detected (authenticity=${ai.authenticityScore ?? 0}%)`);
     }
 
     // Facial anomalies
@@ -346,7 +369,7 @@ function calculateSuspicionScore(params: {
     if (facialCount > 0) {
       const faceScore = Math.min(facialCount * 3, 12);
       score += faceScore;
-      signals.push(`AI Forensics: ${facialCount} facial anomaly/anomalies detected`);
+      signals.push(`AI Forensics: ${facialCount} facial anomaly/anomalies — +${faceScore} pts`);
     }
   }
 
@@ -382,6 +405,14 @@ function calculateSuspicionScore(params: {
   return { score, verdict, confidence, recommendation, signals };
 }
 
+// ── Derive truth score from suspicion score ───────────────────────────────────
+function suspicionToTruthScore(suspicionScore: number): { truthScore: number; status: VerificationResult['status'] } {
+  if (suspicionScore <= 24) return { truthScore: Math.round(85 + (24 - suspicionScore) * (15 / 24)), status: 'true' };
+  if (suspicionScore <= 49) return { truthScore: Math.round(50 + (49 - suspicionScore) * (30 / 25)), status: 'disputed' };
+  if (suspicionScore <= 74) return { truthScore: Math.round(20 + (74 - suspicionScore) * (25 / 25)), status: 'mostly-false' };
+  return { truthScore: Math.round(Math.max(0, 20 - (suspicionScore - 75))), status: 'false' };
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -406,8 +437,27 @@ Deno.serve(async (req) => {
       Deno.env.get('SERPER_API_KEY_3'),
     ].filter(Boolean) as string[];
 
+    // BitMind: collect all 5 keys (rotation)
+    const bitmindKeys = [
+      Deno.env.get('BITMIND_API_KEY'),
+      Deno.env.get('BITMIND_API_KEY_2'),
+      Deno.env.get('BITMIND_API_KEY_3'),
+      Deno.env.get('BITMIND_API_KEY_4'),
+      Deno.env.get('BITMIND_API_KEY_5'),
+    ].filter(Boolean) as string[];
+
+    // SightEngine: collect all 5 credential pairs (rotation)
+    const sightengineCredentials = [
+      { user: Deno.env.get('SIGHTENGINE_API_USER'), secret: Deno.env.get('SIGHTENGINE_API_SECRET') },
+      { user: Deno.env.get('SIGHTENGINE_API_USER_2'), secret: Deno.env.get('SIGHTENGINE_API_SECRET_2') },
+      { user: Deno.env.get('SIGHTENGINE_API_USER_3'), secret: Deno.env.get('SIGHTENGINE_API_SECRET_3') },
+      { user: Deno.env.get('SIGHTENGINE_API_USER_4'), secret: Deno.env.get('SIGHTENGINE_API_SECRET_4') },
+      { user: Deno.env.get('SIGHTENGINE_API_USER_5'), secret: Deno.env.get('SIGHTENGINE_API_SECRET_5') },
+    ].filter(c => c.user && c.secret) as Array<{ user: string; secret: string }>;
+
+    console.log(`BitMind keys available: ${bitmindKeys.length}, SightEngine credentials: ${sightengineCredentials.length}`);
+
     if (!aiApiKey || !aiBaseUrl) throw new Error('OnSpace AI configuration missing');
-    if (serperKeys.length === 0) throw new Error('No Serper API keys configured');
 
     const currentDate = new Date().toLocaleDateString('en-US', {
       year: 'numeric',
@@ -419,18 +469,18 @@ Deno.serve(async (req) => {
     let analyzedClaim = claim;
 
     // ════════════════════════════════════════════════════════════════
-    // STEP A: IMAGE DEEPFAKE DETECTION (multi-engine)
+    // MODE: IMAGE — pure deepfake detection, NO web searches
     // ════════════════════════════════════════════════════════════════
     if (inputType === 'image') {
       const imageUrl = mediaUrl || claim;
-      console.log('--- IMAGE DEEPFAKE DETECTION (multi-engine) ---');
+      console.log('--- IMAGE DEEPFAKE DETECTION (multi-engine, no web search) ---');
 
-      // Fetch image data once, reuse for all APIs
+      // Fetch image binary once, reuse for all APIs
       const imageData = await fetchAsBase64(imageUrl);
 
       const imagePrompt = `You are an expert forensic media analyst and deepfake detection specialist. Today is ${currentDate}.
 
-PRIMARY MISSION: Detect if this image is a DEEPFAKE, AI-GENERATED, or MANIPULATED to spread misinformation.
+PRIMARY MISSION: Detect if this image is a DEEPFAKE, AI-GENERATED, or MANIPULATED.
 
 FORENSIC CHECKS — examine each carefully:
 
@@ -440,8 +490,7 @@ FORENSIC CHECKS — examine each carefully:
    - Eye reflections pointing in different directions (inconsistent light source)
    - Skin texture repeating in a tiled pattern (AI tiling artifact)
    - Hair edges that are too smooth or blend into background unnaturally
-   - Ear asymmetry that is extreme or unnatural
-   - Teeth that are too uniform, too white, or perfectly symmetrical
+   - Extreme ear asymmetry, teeth that are too uniform/white/symmetrical
 
 2. AI GENERATION TELLS (Stable Diffusion, DALL-E, Midjourney, GAN, Firefly, ComfyUI)
    - Extra or missing fingers/limbs
@@ -449,22 +498,17 @@ FORENSIC CHECKS — examine each carefully:
    - Unnatural background repetition or bleeding
    - Overly smooth skin / plastic-looking texture
    - Impossible lighting (multiple contradictory shadow directions)
-   - Objects merging unnaturally
 
 3. ELA INTERPRETATION
-   - Would ELA show uniform error levels across face+background+edges? (AI-generated indicator)
-   - Would ELA show patchy high-error regions on faces but low-error backgrounds? (spliced/composited)
-   - Does it look like normal varied compression? (authentic)
+   - UNIFORM error levels across face+background+edges → AI-generated
+   - PATCHY high-error on faces, low-error backgrounds → spliced/composited
+   - Natural varied compression → NORMAL (authentic)
 
 4. PHOTO MANIPULATION
-   - Clone-stamp regions (copy-paste areas)
-   - Compositing artifacts (edge haloing, lighting mismatch)
-   - Perspective inconsistencies
-   - Selective JPEG compression artifacts
+   - Clone-stamp regions, compositing artifacts, perspective inconsistencies
 
-5. CONTEXT MISREPRESENTATION
-   - Real image used out of context
-   - Cropped to remove context
+5. CONTEXT
+   - What does this image show? Any visible text or identifiable subjects?
 
 Provide a short descriptive name (max 8 words) of what you see.
 
@@ -496,36 +540,20 @@ Return ONLY valid JSON (no markdown):
               role: 'user',
               content: [
                 { type: 'text', text: imagePrompt },
-                {
-                  type: 'image_url',
-                  image_url: {
-                    url: `data:${imageData.mimeType};base64,${imageData.base64}`,
-                  },
-                },
+                { type: 'image_url', image_url: { url: `data:${imageData.mimeType};base64,${imageData.base64}` } },
               ],
             },
           ]
         : [
-            {
-              role: 'system',
-              content: 'You are a deepfake detection specialist. Respond with valid JSON only.',
-            },
-            {
-              role: 'user',
-              content: `${imagePrompt}\n\nImage URL: ${imageUrl}\n(Image could not be fetched — analyze based on URL/filename context.)`,
-            },
+            { role: 'system', content: 'You are a deepfake detection specialist. Respond with valid JSON only.' },
+            { role: 'user', content: `${imagePrompt}\n\nImage URL: ${imageUrl}\n(Image could not be fetched — analyze based on URL/filename context.)` },
           ];
 
-      // Run AI analysis + 3 external APIs in parallel
-      const [
-        aiRaw,
-        bitmindResult,
-        sightengineResult,
-        realityDefenderResult,
-      ] = await Promise.all([
+      // Run AI forensic analysis + 3 external detection APIs in parallel — NO web searches
+      const [aiRaw, bitmindResult, sightengineResult, realityDefenderResult] = await Promise.all([
         callAI(aiApiKey, aiBaseUrl, imageMessages, 0.15).catch(e => { console.error('AI image analysis error:', e); return null; }),
-        imageData ? callBitMind(imageData.buffer, imageData.mimeType) : Promise.resolve({ isFake: false, confidence: 0, status: 'unavailable' as const }),
-        callSightEngine(imageUrl),
+        imageData ? callBitMind(imageData.buffer, imageData.mimeType, bitmindKeys) : Promise.resolve({ isFake: false, confidence: 0, status: 'unavailable' as const }),
+        callSightEngine(imageUrl, sightengineCredentials),
         callRealityDefender(imageUrl),
       ]);
 
@@ -539,7 +567,6 @@ Return ONLY valid JSON (no markdown):
         }
       }
 
-      // Fallback if AI analysis failed
       if (!imageAnalysis.imageName) {
         imageAnalysis = {
           imageName: 'Uploaded image',
@@ -567,7 +594,6 @@ Return ONLY valid JSON (no markdown):
       console.log('SightEngine:', JSON.stringify(sightengineResult));
       console.log('Reality Defender:', JSON.stringify(realityDefenderResult));
 
-      // Calculate suspicion score
       const forensicScore = calculateSuspicionScore({
         bitmind: bitmindResult as any,
         sightengine: sightengineResult as any,
@@ -577,36 +603,10 @@ Return ONLY valid JSON (no markdown):
 
       console.log('Forensic score:', forensicScore.score, forensicScore.verdict);
 
-      // Reverse image search + deepfake context search in parallel
-      const searchQuery = imageAnalysis.imageName || imageAnalysis.visibleText || claim;
-      const [imgSearchData, contextSearchData] = await Promise.all([
-        serperSearch(searchQuery, serperKeys, 'images', 10),
-        serperSearch(
-          `deepfake OR "ai generated" OR fake OR manipulated "${searchQuery.substring(0, 60)}"`,
-          serperKeys,
-          'search',
-          5
-        ),
-      ]);
-
-      const reverseSearchResults = (imgSearchData?.images || []).slice(0, 6).map((img: any) => ({
-        url: img.link,
-        title: img.title,
-        source: img.source || img.link,
-        imageUrl: img.imageUrl || img.thumbnailUrl || null,
-      }));
-
-      const contextResults = (contextSearchData?.organic || []).slice(0, 3).map((r: any) => ({
-        title: r.title,
-        url: r.link,
-        snippet: r.snippet,
-      }));
-
       contentAnalysis = {
         contentType: 'image',
         summary: imageAnalysis.analysis || 'Image forensic analysis completed',
         imageAnalysis: {
-          // AI forensic analysis
           overallVerdict: imageAnalysis.overallVerdict || 'UNCERTAIN',
           deepfakeDetected: imageAnalysis.deepfakeDetected || false,
           deepfakeConfidence: imageAnalysis.deepfakeConfidence || 0,
@@ -622,203 +622,117 @@ Return ONLY valid JSON (no markdown):
           facialAnomalies: imageAnalysis.facialAnomalies || [],
           backgroundAnomalies: imageAnalysis.backgroundAnomalies || [],
           compressionAnomalies: imageAnalysis.compressionAnomalies || [],
-
-          // External API results
-          bitmind: {
-            status: bitmindResult.status,
-            isFake: bitmindResult.isFake,
-            confidence: bitmindResult.confidence,
-          },
-          sightengine: {
-            status: sightengineResult.status,
-            deepfakeScore: sightengineResult.deepfakeScore,
-            aiGeneratedScore: sightengineResult.aiGeneratedScore,
-          },
-          realitydefender: {
-            status: realityDefenderResult.status,
-            result: realityDefenderResult.result,
-            confidence: realityDefenderResult.confidence,
-          },
-
-          // Multi-engine score
+          bitmind: { status: bitmindResult.status, isFake: bitmindResult.isFake, confidence: bitmindResult.confidence },
+          sightengine: { status: sightengineResult.status, deepfakeScore: sightengineResult.deepfakeScore, aiGeneratedScore: sightengineResult.aiGeneratedScore },
+          realitydefender: { status: realityDefenderResult.status, result: realityDefenderResult.result, confidence: realityDefenderResult.confidence },
           suspicionScore: forensicScore.score,
           suspicionVerdict: forensicScore.verdict,
           detectionConfidence: forensicScore.confidence,
           recommendation: forensicScore.recommendation,
           signalLog: forensicScore.signals,
-
-          reverseSearchResults,
-          contextResults,
         },
       };
 
       analyzedClaim = imageAnalysis.imageName || 'Image verification';
       console.log(`Image name: "${analyzedClaim}"`);
+
+      // ── Derive scores and save — skip all web search for images ──
+      const { truthScore, status } = suspicionToTruthScore(forensicScore.score);
+      const explanation = `${imageAnalysis.analysis || ''} Suspicion score: ${forensicScore.score}/100 — ${forensicScore.verdict}. ${forensicScore.recommendation}`;
+
+      const authHeader = req.headers.get('Authorization');
+      let userId: string | null = null;
+      if (authHeader) {
+        const token = authHeader.replace('Bearer ', '');
+        const anonClient = createClient(Deno.env.get('SUPABASE_URL') ?? '', Deno.env.get('SUPABASE_ANON_KEY') ?? '');
+        const { data: { user } } = await anonClient.auth.getUser(token);
+        userId = user?.id ?? null;
+      }
+
+      const supabaseAdmin = createClient(Deno.env.get('SUPABASE_URL') ?? '', Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '');
+      const { data: saved, error: saveError } = await supabaseAdmin
+        .from('verifications')
+        .insert({
+          user_id: userId,
+          claim: analyzedClaim,
+          input_type: inputType,
+          truth_score: truthScore,
+          status,
+          explanation,
+          sources: [],
+          related_claims: [],
+          media_url: mediaUrl || null,
+        })
+        .select()
+        .single();
+
+      if (saveError) throw new Error(`Failed to save verification: ${saveError.message}`);
+      console.log('Saved image verification:', saved.id);
+      console.log('=== verify-claim complete (image) ===');
+
+      return new Response(
+        JSON.stringify({ id: saved.id, truthScore, status, explanation, sources: [], relatedClaims: [], contentAnalysis }),
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
 
     // ════════════════════════════════════════════════════════════════
-    // STEP B: VIDEO DEEPFAKE DETECTION
+    // MODE: VIDEO — pure deepfake detection, NO web searches
     // ════════════════════════════════════════════════════════════════
     if (inputType === 'video') {
       const videoUrl = mediaUrl || claim;
       const isYouTube = videoUrl.includes('youtube.com') || videoUrl.includes('youtu.be');
       const isTikTok = videoUrl.includes('tiktok.com');
-      console.log('--- VIDEO DEEPFAKE DETECTION ---', { isYouTube, isTikTok });
+      console.log('--- VIDEO DEEPFAKE DETECTION (no web search) ---', { isYouTube, isTikTok });
 
-      if (isYouTube || isTikTok) {
-        let videoId = '';
-        if (isYouTube) {
-          const ytMatch = videoUrl.match(/(?:v=|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
-          videoId = ytMatch?.[1] || '';
-        }
+      const videoPrompt = `You are a forensic video analyst and deepfake detection specialist. Today is ${currentDate}.
 
-        const searchQuery = isYouTube
-          ? `${videoId ? `youtube ${videoId}` : claim} deepfake fake OR debunked`
-          : `tiktok ${claim} deepfake fake OR debunked`;
-
-        const [videoSearchData, factCheckData] = await Promise.all([
-          serperSearch(searchQuery, serperKeys, 'search', 8),
-          serperSearch(
-            `"${claim.substring(0, 80)}" fact check OR deepfake OR fake`,
-            serperKeys,
-            'news',
-            5
-          ),
-        ]);
-
-        const allResults = [
-          ...(videoSearchData?.organic || []),
-          ...(factCheckData?.news || []),
-        ];
-        const videoSearchContext = allResults
-          .slice(0, 6)
-          .map(
-            (r: any, i: number) =>
-              `[${i + 1}] ${r.title}\n   ${r.snippet}${r.date ? ` (${r.date})` : ''}`
-          )
-          .join('\n\n');
-
-        const videoPrompt = `You are a forensic video analyst and deepfake detection specialist. Today is ${currentDate}.
-
-Analyze this ${isYouTube ? 'YouTube' : 'TikTok'} video for DEEPFAKES and MISINFORMATION.
+The user submitted this video for DEEPFAKE DETECTION. Do NOT search the web — analyze based on the URL, platform context, and any observable signals.
 
 Video URL: ${videoUrl}
-User submitted for analysis: "${claim}"
+Platform: ${isYouTube ? 'YouTube' : isTikTok ? 'TikTok' : 'Direct upload'}
+User context: "${claim}"
 
-Real-time search context:
-${videoSearchContext || 'No search results found.'}
-
-DEEPFAKE RISK ASSESSMENT — evaluate based on context:
+DEEPFAKE RISK ASSESSMENT:
 - Is a known political figure, celebrity, or public person shown in an unlikely scenario?
-- Do search results mention this video is disputed, debunked, or AI-generated?
-- Are there signs of voice cloning or lip-sync inconsistencies mentioned?
-- Is the content designed to mislead viewers about a real event?
-- Does the platform/URL/title suggest synthetic or manipulated content?
+- Are there signs of face-swapping, voice cloning, or lip-sync inconsistencies?
+- Does the URL/title/context suggest synthetic or manipulated content?
+- Is the content designed to mislead viewers about a real event or person?
+- For full-synthesis videos (Sora/Runway/Kling): impossible motion, object permanence failures, temporal instability?
 
 Return ONLY valid JSON:
 {
-  "mainClaim": "<the primary verifiable claim made or implied>",
+  "mainClaim": "<the primary verifiable claim made or implied by this video>",
   "videoTitle": "<estimated or known title>",
-  "extractedClaims": ["<claim1>", "<claim2>"],
-  "contentType": "<news|opinion|entertainment|educational|misinformation|deepfake>",
   "deepfakeRisk": "<HIGH|MEDIUM|LOW|NONE>",
   "deepfakeConfidence": <0-100>,
+  "deepfakeDetected": <true|false>,
+  "deepfakeType": "<face-swap|voice-clone|full-synthesis|frame-manipulation|none>",
   "deepfakeIndicators": ["<specific indicator>"],
+  "facialAnomalies": ["<facial artifact or empty array>"],
+  "audioAnomalies": ["<audio/voice artifact or empty array>"],
+  "temporalAnomalies": ["<frame/motion artifact or empty array>"],
   "isMisinformation": <true|false>,
   "misinformationDetails": "<why this may be misinformation, or 'No misinformation detected'>",
   "voiceCloningRisk": "<HIGH|MEDIUM|LOW|NONE>",
-  "sourceCredibility": <0-100>,
   "authenticityScore": <0-100>,
-  "overallVerdict": "<AUTHENTIC|DEEPFAKE|MANIPULATED|MISINFORMATION|UNCERTAIN>",
+  "overallVerdict": "<AUTHENTIC|DEEPFAKE|MANIPULATED|AI-GENERATED|UNCERTAIN>",
   "summary": "<3-4 sentence deepfake/misinformation risk assessment>"
 }`;
 
-        let videoAnalysis: any = {};
-        try {
-          const raw = await callAI(aiApiKey, aiBaseUrl, [
-            {
-              role: 'system',
-              content: 'You are a deepfake detection and video fact-checking specialist. Respond with valid JSON only.',
-            },
-            { role: 'user', content: videoPrompt },
-          ], 0.2);
-          videoAnalysis = parseJSON(raw);
-          console.log('Video deepfake analysis:', JSON.stringify(videoAnalysis).substring(0, 300));
-        } catch (e) {
-          console.error('Video analysis error:', e);
-          videoAnalysis = {
-            mainClaim: claim,
-            summary: 'Video content analysis',
-            deepfakeRisk: 'NONE',
-            deepfakeConfidence: 0,
-            overallVerdict: 'UNCERTAIN',
-          };
-        }
+      // For uploaded videos, attempt to pass binary to AI
+      let videoAnalysis: any = {};
+      const isUpload = !isYouTube && !isTikTok;
 
-        contentAnalysis = {
-          contentType: 'video',
-          summary: videoAnalysis.summary || `Video: ${claim}`,
-          mainClaim: videoAnalysis.mainClaim,
-          extractedMedia: [
-            { type: 'video', url: videoUrl, caption: videoAnalysis.videoTitle || claim },
-          ],
-          videoAnalysis: {
-            platform: isYouTube ? 'YouTube' : 'TikTok',
-            extractedClaims: videoAnalysis.extractedClaims || [],
-            contentType: videoAnalysis.contentType,
-            deepfakeRisk: videoAnalysis.deepfakeRisk || 'NONE',
-            deepfakeConfidence: videoAnalysis.deepfakeConfidence || 0,
-            deepfakeIndicators: videoAnalysis.deepfakeIndicators || [],
-            isMisinformation: videoAnalysis.isMisinformation || false,
-            misinformationDetails: videoAnalysis.misinformationDetails || 'No misinformation detected',
-            voiceCloningRisk: videoAnalysis.voiceCloningRisk || 'NONE',
-            sourceCredibility: videoAnalysis.sourceCredibility || 70,
-            authenticityScore: videoAnalysis.authenticityScore || 70,
-            overallVerdict: videoAnalysis.overallVerdict || 'UNCERTAIN',
-          },
-        };
-
-        analyzedClaim = videoAnalysis.mainClaim || claim;
-      } else {
-        // Uploaded video — full forensic analysis
-        console.log('Uploaded video — forensic deepfake analysis...');
+      if (isUpload) {
         const videoData = await fetchAsBase64(videoUrl);
-
-        const uploadedVideoPrompt = `You are a deepfake detection specialist and forensic video analyst. Today is ${currentDate}.
-
-User submitted this video for deepfake detection. Context: "${claim}"
-
-COMPREHENSIVE FORENSIC ANALYSIS:
-
-1. FACIAL DEEPFAKE ARTIFACTS: boundary seams, unnatural blinking, skin inconsistencies, lighting mismatch
-2. VOICE CLONING INDICATORS: unnatural cadence, audio-visual desync, metallic voice quality
-3. FULL VIDEO SYNTHESIS (Sora/Runway/Kling): impossible motion, object permanence failures, temporal instability
-4. FRAME MANIPULATION: cut-and-paste regions, selective blurring, unnatural transitions
-
-Return ONLY valid JSON:
-{
-  "mainClaim": "<primary verifiable claim from this video>",
-  "summary": "<3-4 sentence forensic deepfake assessment>",
-  "deepfakeDetected": <true|false>,
-  "deepfakeConfidence": <0-100>,
-  "deepfakeType": "<face-swap|voice-clone|full-synthesis|frame-manipulation|none>",
-  "facialAnomalies": ["<specific facial artifact or empty array>"],
-  "audioAnomalies": ["<audio/voice artifact or empty array>"],
-  "temporalAnomalies": ["<frame/motion artifact or empty array>"],
-  "authenticityScore": <0-100>,
-  "overallVerdict": "<AUTHENTIC|DEEPFAKE|MANIPULATED|AI-GENERATED|UNCERTAIN>",
-  "analysis": "<detailed forensic explanation of all findings>"
-}`;
-
-        let videoAnalysis: any = {};
-
         if (videoData && videoData.mimeType.startsWith('video/')) {
           try {
             const raw = await callAI(aiApiKey, aiBaseUrl, [
               {
                 role: 'user',
                 content: [
-                  { type: 'text', text: uploadedVideoPrompt },
+                  { type: 'text', text: videoPrompt },
                   { type: 'image_url', image_url: { url: `data:${videoData.mimeType};base64,${videoData.base64}` } },
                 ],
               },
@@ -828,60 +742,110 @@ Return ONLY valid JSON:
             console.error('Uploaded video AI analysis error:', e);
           }
         }
-
-        if (!videoAnalysis.mainClaim) {
-          try {
-            const raw = await callAI(aiApiKey, aiBaseUrl, [
-              { role: 'system', content: 'You are a deepfake detection specialist. Respond with valid JSON only.' },
-              { role: 'user', content: uploadedVideoPrompt },
-            ], 0.2);
-            videoAnalysis = parseJSON(raw);
-          } catch (e) {
-            videoAnalysis = {
-              mainClaim: claim,
-              summary: 'Video deepfake analysis',
-              deepfakeDetected: false,
-              deepfakeConfidence: 0,
-              deepfakeType: 'none',
-              authenticityScore: 70,
-              overallVerdict: 'UNCERTAIN',
-              facialAnomalies: [],
-              audioAnomalies: [],
-              temporalAnomalies: [],
-              analysis: 'Video could not be fully analyzed.',
-            };
-          }
-        }
-
-        contentAnalysis = {
-          contentType: 'video',
-          summary: videoAnalysis.summary || 'Uploaded video deepfake analysis',
-          mainClaim: videoAnalysis.mainClaim,
-          extractedMedia: [
-            { type: 'video', url: videoUrl, caption: videoAnalysis.mainClaim || claim },
-          ],
-          videoAnalysis: {
-            deepfakeDetected: videoAnalysis.deepfakeDetected || false,
-            deepfakeConfidence: videoAnalysis.deepfakeConfidence || 0,
-            deepfakeType: videoAnalysis.deepfakeType || 'none',
-            facialAnomalies: videoAnalysis.facialAnomalies || [],
-            audioAnomalies: videoAnalysis.audioAnomalies || [],
-            temporalAnomalies: videoAnalysis.temporalAnomalies || [],
-            authenticityScore: videoAnalysis.authenticityScore || 70,
-            overallVerdict: videoAnalysis.overallVerdict || 'UNCERTAIN',
-            analysis: videoAnalysis.analysis || '',
-          },
-        };
-
-        analyzedClaim = videoAnalysis.mainClaim || claim;
-        console.log(`Video claim: "${analyzedClaim}"`);
       }
+
+      if (!videoAnalysis.mainClaim) {
+        try {
+          const raw = await callAI(aiApiKey, aiBaseUrl, [
+            { role: 'system', content: 'You are a deepfake detection specialist. Respond with valid JSON only.' },
+            { role: 'user', content: videoPrompt },
+          ], 0.2);
+          videoAnalysis = parseJSON(raw);
+          console.log('Video deepfake analysis:', JSON.stringify(videoAnalysis).substring(0, 300));
+        } catch (e) {
+          console.error('Video analysis fallback error:', e);
+          videoAnalysis = {
+            mainClaim: claim,
+            summary: 'Video deepfake analysis — insufficient data to determine authenticity.',
+            deepfakeRisk: 'NONE',
+            deepfakeConfidence: 0,
+            deepfakeDetected: false,
+            deepfakeType: 'none',
+            deepfakeIndicators: [],
+            facialAnomalies: [],
+            audioAnomalies: [],
+            temporalAnomalies: [],
+            isMisinformation: false,
+            misinformationDetails: 'No misinformation detected',
+            voiceCloningRisk: 'NONE',
+            authenticityScore: 70,
+            overallVerdict: 'UNCERTAIN',
+          };
+        }
+      }
+
+      // Derive truth score from deepfake confidence for video
+      const deepfakeConf = videoAnalysis.deepfakeConfidence || 0;
+      const videoSuspicion = Math.min(deepfakeConf + (videoAnalysis.deepfakeRisk === 'HIGH' ? 20 : videoAnalysis.deepfakeRisk === 'MEDIUM' ? 10 : 0), 100);
+      const { truthScore: videoTruthScore, status: videoStatus } = suspicionToTruthScore(videoSuspicion);
+      const videoExplanation = `${videoAnalysis.summary || ''} Deepfake confidence: ${deepfakeConf}%. ${videoAnalysis.misinformationDetails || ''}`;
+
+      contentAnalysis = {
+        contentType: 'video',
+        summary: videoAnalysis.summary || `Video deepfake analysis`,
+        mainClaim: videoAnalysis.mainClaim,
+        extractedMedia: [{ type: 'video', url: videoUrl, caption: videoAnalysis.videoTitle || claim }],
+        videoAnalysis: {
+          platform: isYouTube ? 'YouTube' : isTikTok ? 'TikTok' : 'Uploaded',
+          deepfakeRisk: videoAnalysis.deepfakeRisk || 'NONE',
+          deepfakeConfidence: videoAnalysis.deepfakeConfidence || 0,
+          deepfakeDetected: videoAnalysis.deepfakeDetected || false,
+          deepfakeType: videoAnalysis.deepfakeType || 'none',
+          deepfakeIndicators: videoAnalysis.deepfakeIndicators || [],
+          facialAnomalies: videoAnalysis.facialAnomalies || [],
+          audioAnomalies: videoAnalysis.audioAnomalies || [],
+          temporalAnomalies: videoAnalysis.temporalAnomalies || [],
+          isMisinformation: videoAnalysis.isMisinformation || false,
+          misinformationDetails: videoAnalysis.misinformationDetails || 'No misinformation detected',
+          voiceCloningRisk: videoAnalysis.voiceCloningRisk || 'NONE',
+          authenticityScore: videoAnalysis.authenticityScore || 70,
+          overallVerdict: videoAnalysis.overallVerdict || 'UNCERTAIN',
+        },
+      };
+
+      analyzedClaim = videoAnalysis.mainClaim || claim;
+
+      const authHeader = req.headers.get('Authorization');
+      let userId: string | null = null;
+      if (authHeader) {
+        const token = authHeader.replace('Bearer ', '');
+        const anonClient = createClient(Deno.env.get('SUPABASE_URL') ?? '', Deno.env.get('SUPABASE_ANON_KEY') ?? '');
+        const { data: { user } } = await anonClient.auth.getUser(token);
+        userId = user?.id ?? null;
+      }
+
+      const supabaseAdmin = createClient(Deno.env.get('SUPABASE_URL') ?? '', Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '');
+      const { data: saved, error: saveError } = await supabaseAdmin
+        .from('verifications')
+        .insert({
+          user_id: userId,
+          claim: analyzedClaim,
+          input_type: inputType,
+          truth_score: videoTruthScore,
+          status: videoStatus,
+          explanation: videoExplanation,
+          sources: [],
+          related_claims: [],
+          media_url: mediaUrl || null,
+        })
+        .select()
+        .single();
+
+      if (saveError) throw new Error(`Failed to save verification: ${saveError.message}`);
+      console.log('Saved video verification:', saved.id);
+      console.log('=== verify-claim complete (video) ===');
+
+      return new Response(
+        JSON.stringify({ id: saved.id, truthScore: videoTruthScore, status: videoStatus, explanation: videoExplanation, sources: [], relatedClaims: [], contentAnalysis }),
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
 
     // ════════════════════════════════════════════════════════════════
-    // STEP C: URL CONTENT EXTRACTION
+    // MODE: URL — content extraction + web search verification
     // ════════════════════════════════════════════════════════════════
     if (inputType === 'url') {
+      if (serperKeys.length === 0) throw new Error('No Serper API keys configured');
       console.log('--- URL VERIFICATION ---');
       let extractedTitle = '';
       let extractedText = '';
@@ -983,9 +947,11 @@ Return ONLY valid JSON:
     }
 
     // ════════════════════════════════════════════════════════════════
-    // STEP D: WEB SEARCH
+    // TEXT + URL: WEB SEARCH → AI VERIFICATION
     // ════════════════════════════════════════════════════════════════
+    if (serperKeys.length === 0) throw new Error('No Serper API keys configured');
     console.log('--- WEB SEARCH ---', analyzedClaim.substring(0, 80));
+
     const [searchData, imageData] = await Promise.all([
       serperSearch(analyzedClaim, serperKeys, 'search', 10),
       serperSearch(analyzedClaim, serperKeys, 'images', 10),
@@ -1003,9 +969,6 @@ Return ONLY valid JSON:
       ? `\n**ANALYZED CONTENT:**\nType: ${contentAnalysis.contentType}\nSummary: ${contentAnalysis.summary}\n`
       : '';
 
-    // ════════════════════════════════════════════════════════════════
-    // STEP E: AI VERIFICATION ANALYSIS
-    // ════════════════════════════════════════════════════════════════
     console.log('--- AI VERIFICATION ---');
     const verificationPrompt = `You are TruthLens AI, a professional fact-checking system. Today is ${currentDate} (year 2026).
 
@@ -1048,10 +1011,7 @@ Return ONLY valid JSON:
 }`;
 
     const aiRaw = await callAI(aiApiKey, aiBaseUrl, [
-      {
-        role: 'system',
-        content: 'You are TruthLens AI, operating in 2026. Fact-check claims using ONLY the provided search results. Respond with valid JSON only.',
-      },
+      { role: 'system', content: 'You are TruthLens AI, operating in 2026. Fact-check claims using ONLY the provided search results. Respond with valid JSON only.' },
       { role: 'user', content: verificationPrompt },
     ], 0.25);
 
@@ -1071,12 +1031,9 @@ Return ONLY valid JSON:
       return { id: `src-${Date.now()}-${idx}`, ...source, imageUrl };
     });
 
-    // ════════════════════════════════════════════════════════════════
-    // STEP F: SAVE TO DATABASE
-    // ════════════════════════════════════════════════════════════════
+    // Save to DB
     const authHeader = req.headers.get('Authorization');
     let userId: string | null = null;
-
     if (authHeader) {
       const token = authHeader.replace('Bearer ', '');
       const anonClient = createClient(Deno.env.get('SUPABASE_URL') ?? '', Deno.env.get('SUPABASE_ANON_KEY') ?? '');
@@ -1085,7 +1042,6 @@ Return ONLY valid JSON:
     }
 
     const supabaseAdmin = createClient(Deno.env.get('SUPABASE_URL') ?? '', Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '');
-
     const { data: saved, error: saveError } = await supabaseAdmin
       .from('verifications')
       .insert({
@@ -1102,11 +1058,7 @@ Return ONLY valid JSON:
       .select()
       .single();
 
-    if (saveError) {
-      console.error('DB save error:', saveError);
-      throw new Error(`Failed to save verification: ${saveError.message}`);
-    }
-
+    if (saveError) throw new Error(`Failed to save verification: ${saveError.message}`);
     console.log('Saved verification:', saved.id);
 
     if (userId) {
@@ -1121,11 +1073,11 @@ Return ONLY valid JSON:
     }
 
     console.log('=== verify-claim complete ===');
-
     return new Response(
       JSON.stringify({ id: saved.id, ...result, sources: sourcesWithIds, contentAnalysis }),
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
+
   } catch (error) {
     console.error('verify-claim fatal error:', error);
     return new Response(
