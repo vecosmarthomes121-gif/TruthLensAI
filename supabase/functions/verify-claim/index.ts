@@ -135,23 +135,34 @@ function parseJSON(content: string): any {
 }
 
 // ── Detection API: BitMind (with 5-key rotation) ─────────────────────────────
+// Correct endpoint: POST https://api.bitmind.ai/oracle/v1/34/detect-image
+// Auth: Authorization: Bearer <api_key>  +  x-bitmind-application: oracle-api
+// Body: JSON { "image": "<base64_data_uri or public_url>", "rich": false }
+// Response: { "isAI": bool, "confidence": 0-1 }
 async function callBitMind(
-  imageBuffer: ArrayBuffer,
+  imageBase64: string,
   mimeType: string,
+  imageUrl: string,
   keys: string[]
 ): Promise<{ isFake: boolean; confidence: number; status: 'ok' | 'unavailable' }> {
   if (keys.length === 0) return { isFake: false, confidence: 0, status: 'unavailable' };
 
+  // BitMind accepts either a base64 data URI (max 4MB) or a public URL
+  // Prefer base64 so it works for any image regardless of CORS restrictions
+  const imagePayload = imageBase64
+    ? `data:${mimeType};base64,${imageBase64}`
+    : imageUrl;
+
   for (let i = 0; i < keys.length; i++) {
     try {
-      const formData = new FormData();
-      const blob = new Blob([imageBuffer], { type: mimeType });
-      formData.append('file', blob, `image.${mimeType.split('/')[1] || 'jpg'}`);
-
-      const res = await fetch('https://api.bitmind.ai/oracle/v1/detect', {
+      const res = await fetch('https://api.bitmind.ai/oracle/v1/34/detect-image', {
         method: 'POST',
-        headers: { 'x-api-key': keys[i] },
-        body: formData,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${keys[i]}`,
+          'x-bitmind-application': 'oracle-api',
+        },
+        body: JSON.stringify({ image: imagePayload, rich: false }),
       });
 
       if (res.status === 429 || res.status === 403) {
@@ -161,15 +172,17 @@ async function callBitMind(
 
       if (!res.ok) {
         const errText = await res.text();
-        console.warn(`BitMind key ${i + 1} error:`, res.status, errText.substring(0, 200));
+        console.warn(`BitMind key ${i + 1} error:`, res.status, errText.substring(0, 300));
         continue;
       }
 
       const data = await res.json();
-      console.log(`BitMind key ${i + 1} response:`, JSON.stringify(data).substring(0, 200));
+      console.log(`BitMind key ${i + 1} response:`, JSON.stringify(data).substring(0, 300));
 
-      const isFake = data.is_fake ?? data.fake ?? data.result === 'fake' ?? false;
-      const confidence = Math.round((data.confidence ?? data.score ?? 0) * 100);
+      // Response shape: { isAI: bool, confidence: 0-1 }
+      const isFake = data.isAI ?? data.is_fake ?? data.fake ?? false;
+      const rawConf = data.confidence ?? data.score ?? 0;
+      const confidence = Math.round(rawConf * 100);
       return { isFake: Boolean(isFake), confidence, status: 'ok' };
     } catch (err) {
       console.error(`BitMind key ${i + 1} call error:`, err);
@@ -181,25 +194,46 @@ async function callBitMind(
 }
 
 // ── Detection API: SightEngine (with 5-key pair rotation) ───────────────────
+// URL mode:    GET  https://api.sightengine.com/1.0/check.json?url=...&models=deepfake,ai-generated&api_user=...&api_secret=...
+// Binary mode: POST https://api.sightengine.com/1.0/check.json with FormData (media=<blob>, models=, api_user=, api_secret=)
+// Response shape: { status: 'success', type: { deepfake: 0-1 }, ai_generated: { score: 0-1 } }
 async function callSightEngine(
   imageUrl: string,
-  credentials: Array<{ user: string; secret: string }>
+  credentials: Array<{ user: string; secret: string }>,
+  imageBuffer?: ArrayBuffer,
+  mimeType?: string
 ): Promise<{ deepfakeScore: number; aiGeneratedScore: number; status: 'ok' | 'unavailable' }> {
   if (credentials.length === 0) return { deepfakeScore: 0, aiGeneratedScore: 0, status: 'unavailable' };
 
   for (let i = 0; i < credentials.length; i++) {
     const { user, secret } = credentials[i];
     try {
-      const params = new URLSearchParams({
-        url: imageUrl,
-        models: 'deepfake,ai-generated',
-        api_user: user,
-        api_secret: secret,
-      });
+      let res: Response;
 
-      const res = await fetch(`https://api.sightengine.com/1.0/check.json?${params.toString()}`, {
-        method: 'GET',
-      });
+      if (imageBuffer && imageBuffer.byteLength > 0) {
+        // Binary upload: POST with FormData — works for any image regardless of URL accessibility
+        const formData = new FormData();
+        const blob = new Blob([imageBuffer], { type: mimeType || 'image/jpeg' });
+        formData.append('media', blob, `image.${(mimeType || 'image/jpeg').split('/')[1] || 'jpg'}`);
+        formData.append('models', 'deepfake,ai-generated');
+        formData.append('api_user', user);
+        formData.append('api_secret', secret);
+        res = await fetch('https://api.sightengine.com/1.0/check.json', {
+          method: 'POST',
+          body: formData,
+        });
+      } else {
+        // URL mode: GET with query params
+        const params = new URLSearchParams({
+          url: imageUrl,
+          models: 'deepfake,ai-generated',
+          api_user: user,
+          api_secret: secret,
+        });
+        res = await fetch(`https://api.sightengine.com/1.0/check.json?${params.toString()}`, {
+          method: 'GET',
+        });
+      }
 
       if (res.status === 429 || res.status === 403) {
         console.warn(`SightEngine credential ${i + 1} rate limited (${res.status}), trying next...`);
@@ -207,22 +241,25 @@ async function callSightEngine(
       }
 
       if (!res.ok) {
-        console.warn(`SightEngine credential ${i + 1} error:`, res.status);
+        const errText = await res.text();
+        console.warn(`SightEngine credential ${i + 1} error:`, res.status, errText.substring(0, 200));
         continue;
       }
 
       const data = await res.json();
-      console.log(`SightEngine credential ${i + 1} response:`, JSON.stringify(data).substring(0, 300));
+      console.log(`SightEngine credential ${i + 1} response:`, JSON.stringify(data).substring(0, 400));
 
       if (data.status === 'failure') {
         console.warn(`SightEngine credential ${i + 1} failure:`, data.error?.message);
-        // Don't retry on auth failure
-        if (data.error?.code === 'auth') continue;
         continue;
       }
 
-      const deepfakeScore = Math.round((data.deepfake?.score ?? 0) * 100);
+      // Correct response fields:
+      //   deepfake score → data.type.deepfake  (0-1)
+      //   ai-generated score → data.ai_generated.score  (0-1)
+      const deepfakeScore = Math.round((data.type?.deepfake ?? data.deepfake?.score ?? 0) * 100);
       const aiGeneratedScore = Math.round((data.ai_generated?.score ?? 0) * 100);
+      console.log(`SightEngine scores: deepfake=${deepfakeScore}%, ai-generated=${aiGeneratedScore}%`);
       return { deepfakeScore, aiGeneratedScore, status: 'ok' };
     } catch (err) {
       console.error(`SightEngine credential ${i + 1} call error:`, err);
@@ -552,8 +589,12 @@ Return ONLY valid JSON (no markdown):
       // Run AI forensic analysis + 3 external detection APIs in parallel — NO web searches
       const [aiRaw, bitmindResult, sightengineResult, realityDefenderResult] = await Promise.all([
         callAI(aiApiKey, aiBaseUrl, imageMessages, 0.15).catch(e => { console.error('AI image analysis error:', e); return null; }),
-        imageData ? callBitMind(imageData.buffer, imageData.mimeType, bitmindKeys) : Promise.resolve({ isFake: false, confidence: 0, status: 'unavailable' as const }),
-        callSightEngine(imageUrl, sightengineCredentials),
+        imageData
+          ? callBitMind(imageData.base64, imageData.mimeType, imageUrl, bitmindKeys)
+          : callBitMind('', 'image/jpeg', imageUrl, bitmindKeys),
+        imageData
+          ? callSightEngine(imageUrl, sightengineCredentials, imageData.buffer, imageData.mimeType)
+          : callSightEngine(imageUrl, sightengineCredentials),
         callRealityDefender(imageUrl),
       ]);
 
