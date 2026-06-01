@@ -13,7 +13,7 @@ export default function Footer() {
                 <Shield className="h-4 w-4 text-white" />
               </div>
               <span className="text-lg font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-                TruthLens AI
+                VerolenteAI
               </span>
             </div>
             <p className="text-sm text-muted-foreground mb-4 max-w-sm">
@@ -59,7 +59,7 @@ export default function Footer() {
         </div>
 
         <div className="border-t mt-8 pt-8 text-center text-sm text-muted-foreground">
-          <p>&copy; 2026 TruthLens AI. All rights reserved. Powered by advanced AI verification technology.</p>
+          <p>&copy; 2026 VerolenteAI. All rights reserved. Powered by advanced AI verification technology.</p>
         </div>
       </div>
     </footer>

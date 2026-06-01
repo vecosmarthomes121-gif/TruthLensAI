@@ -119,7 +119,7 @@ export default function TeamPublicPage() {
           onClick={() => navigate('/')}
           className="mt-2 px-6 py-2 rounded-lg bg-primary text-primary-foreground font-semibold hover:opacity-90 transition"
         >
-          Go to TruthLens
+          Go to VerolenteAI
         </button>
       </div>
     );
@@ -289,7 +289,7 @@ export default function TeamPublicPage() {
                 <div className="text-2xl font-bold mb-0.5">{completionRate}%</div>
                 <div className="text-sm text-white/80">Verification Completion</div>
                 <div className="mt-3 pt-3 border-t border-white/20 text-xs text-white/60">
-                  Verified by TruthLens AI Platform
+                  Verified by VerolenteAI Platform
                 </div>
               </div>
 
@@ -381,7 +381,7 @@ export default function TeamPublicPage() {
               {/* Bottom CTA */}
               <div className="mt-8 rounded-2xl bg-gradient-to-br from-blue-50 to-purple-50 dark:from-blue-950/30 dark:to-purple-950/30 border border-blue-100 dark:border-blue-900/40 p-6 text-center">
                 <h3 className="font-bold mb-2">Fact-Check Something Now</h3>
-                <p className="text-sm text-muted-foreground mb-4">Use TruthLens AI to verify any claim, article, image, or video instantly.</p>
+                <p className="text-sm text-muted-foreground mb-4">Use VerolenteAI to verify any claim, article, image, or video instantly.</p>
                 <Link
                   to="/verify"
                   className="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl bg-gradient-to-r from-blue-600 to-purple-600 text-white font-bold text-sm hover:shadow-lg transition-all"

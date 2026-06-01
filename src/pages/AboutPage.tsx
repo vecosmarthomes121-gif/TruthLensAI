@@ -24,7 +24,7 @@ const howItWorksSteps = [
   {
     icon: Search,
     title: 'Submit Any Content',
-    desc: 'Paste a text claim, news headline, URL, image, or video link into TruthLens AI. We accept any format — no reformatting needed.',
+    desc: 'Paste a text claim, news headline, URL, image, or video link into VerolenteAI. We accept any format — no reformatting needed.',
     color: 'from-blue-500 to-blue-700',
     number: '01',
   },
@@ -108,7 +108,7 @@ export default function AboutPage() {
               <span className="text-white/80">of Misinformation</span>
             </h1>
             <p className="text-lg lg:text-xl text-white/85 leading-relaxed max-w-2xl mx-auto mb-10">
-              TruthLens AI is a real-time fact-checking platform powered by frontier AI and live web search — built to help individuals, journalists, and newsrooms cut through noise and verify what's real.
+              VerolenteAI is a real-time fact-checking platform powered by frontier AI and live web search — built to help individuals, journalists, and newsrooms cut through noise and verify what's real.
             </p>
 
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
@@ -146,7 +146,7 @@ export default function AboutPage() {
                 Every day, billions of people encounter headlines, images, and videos designed to mislead. Misinformation spreads faster than fact-checking can keep up with — until now.
               </p>
               <p className="text-muted-foreground leading-relaxed mb-5">
-                TruthLens AI combines frontier multimodal AI (Google Gemini 3) with real-time web search to give anyone — regardless of technical background — instant access to professional-grade fact-checking.
+                VerolenteAI combines frontier multimodal AI (Google Gemini 3) with real-time web search to give anyone — regardless of technical background — instant access to professional-grade fact-checking.
               </p>
               <p className="text-muted-foreground leading-relaxed">
                 We built this for journalists, students, researchers, and everyday readers who deserve to know what's true before they share it.
@@ -291,7 +291,7 @@ export default function AboutPage() {
                 We deliberately chose to combine cutting-edge AI with live web search rather than relying on an AI model's training data — which can be months out of date.
               </p>
               <p className="text-muted-foreground leading-relaxed mb-6">
-                Every verification queries the live web in real time, then asks the AI to reason only from those fresh results. This means TruthLens is always current — even for breaking news stories happening today.
+                Every verification queries the live web in real time, then asks the AI to reason only from those fresh results. This means VerolenteAI is always current — even for breaking news stories happening today.
               </p>
               <div className="flex items-start gap-2.5 p-3.5 bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800 rounded-xl">
                 <AlertTriangle className="h-5 w-5 text-amber-600 flex-shrink-0 mt-0.5" />
@@ -314,7 +314,7 @@ export default function AboutPage() {
               </div>
               <h2 className="text-3xl lg:text-4xl font-bold mb-4">Privacy is Not Optional</h2>
               <p className="text-white/75 max-w-xl mx-auto text-lg leading-relaxed">
-                We built TruthLens on the principle that protecting truth should never come at the cost of your privacy.
+                We built VerolenteAI on the principle that protecting truth should never come at the cost of your privacy.
               </p>
             </div>
 
@@ -329,11 +329,11 @@ export default function AboutPage() {
 
             <div className="text-center">
               <button
-                onClick={() => window.open('mailto:privacy@truthlens.ai', '_blank')}
+                onClick={() => window.open('mailto:privacy@verolente.ai', '_blank')}
                 className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-white/15 text-white font-semibold border border-white/20 hover:bg-white/25 transition-all"
               >
                 <Lock className="h-4 w-4" />
-                privacy@truthlens.ai
+                privacy@verolente.ai
               </button>
             </div>
           </div>
@@ -349,7 +349,7 @@ export default function AboutPage() {
             </div>
             <h2 className="text-3xl lg:text-4xl font-bold mb-4">Built by People Who Care</h2>
             <p className="text-muted-foreground max-w-xl mx-auto">
-              TruthLens AI is early-stage and actively growing. Full team profiles coming soon.
+              VerolenteAI is early-stage and actively growing. Full team profiles coming soon.
             </p>
           </div>
 
@@ -369,8 +369,8 @@ export default function AboutPage() {
 
           <p className="text-center text-sm text-muted-foreground mt-10">
             Interested in joining us?{' '}
-            <a href="mailto:team@truthlens.ai" className="text-blue-600 hover:underline font-semibold">
-              team@truthlens.ai
+            <a href="mailto:team@verolente.ai" className="text-blue-600 hover:underline font-semibold">
+              team@verolente.ai
             </a>
           </p>
         </div>

@@ -41,7 +41,7 @@ async function fetchAsBase64(url: string): Promise<{ base64: string; mimeType: s
   try {
     console.log('Fetching as base64:', url.substring(0, 80));
     const response = await fetch(url, {
-      headers: { 'User-Agent': 'Mozilla/5.0 (compatible; TruthLensBot/1.0)' },
+      headers: { 'User-Agent': 'Mozilla/5.0 (compatible; VerolenteBot/1.0)' },
     });
     if (!response.ok) {
       console.error('Fetch failed:', response.status);
@@ -1011,7 +1011,7 @@ Return ONLY valid JSON:
       : '';
 
     console.log('--- AI VERIFICATION ---');
-    const verificationPrompt = `You are TruthLens AI, a professional fact-checking system. Today is ${currentDate} (year 2026).
+    const verificationPrompt = `You are VerolenteAI, a professional fact-checking system. Today is ${currentDate} (year 2026).
 
 **Claim to verify:** "${analyzedClaim}"
 **Original input:** "${claim}"
@@ -1052,7 +1052,7 @@ Return ONLY valid JSON:
 }`;
 
     const aiRaw = await callAI(aiApiKey, aiBaseUrl, [
-      { role: 'system', content: 'You are TruthLens AI, operating in 2026. Fact-check claims using ONLY the provided search results. Respond with valid JSON only.' },
+      { role: 'system', content: 'You are VerolenteAI, operating in 2026. Fact-check claims using ONLY the provided search results. Respond with valid JSON only.' },
       { role: 'user', content: verificationPrompt },
     ], 0.25);
 

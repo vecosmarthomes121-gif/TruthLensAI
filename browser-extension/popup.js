@@ -1,4 +1,4 @@
-// TruthLens AI Popup Script v2.0
+// VerolenteAI Popup Script v2.0
 const BASE_URL = 'https://doztmrzytayxhgjbdozt.onspace.app';
 const API_URL  = 'https://doztmrzytayxhgjbdozt.backend.onspace.ai/functions/v1/verify-claim';
 const ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRvenRtcnp5dGF5eGhnamJkb3p0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDM0OTY3NDUsImV4cCI6MjA1OTA3Mjc0NX0.CJ_qFJcMSJ3rniicU_XPRJrg4JwS2OEfZRWH4cBP5Xo';
@@ -142,7 +142,7 @@ async function runPopupVerification(data) {
 
     showPopupResult(result, data);
   } catch (err) {
-    console.error('[TruthLens Popup]', err);
+    console.error('[VerolenteAI Popup]', err);
     showPopupError(err.message || 'Verification failed. Try again.');
   } finally {
     document.getElementById('quick-verify-btn').disabled = false;
@@ -188,7 +188,7 @@ function showPopupResult(result, originalData) {
   });
 
   document.getElementById('popup-share-btn').addEventListener('click', () => {
-    const text = `"${claim.substring(0, 100)}" - Truth Score: ${score}% | Verified by TruthLens AI\n${BASE_URL}/result/${result.id || ''}`;
+    const text = `"${claim.substring(0, 100)}" - Truth Score: ${score}% | Verified by VerolenteAI\n${BASE_URL}/result/${result.id || ''}`;
     if (navigator.clipboard) {
       navigator.clipboard.writeText(text).then(() => {
         document.getElementById('popup-share-btn').textContent = '✅ Copied!';
@@ -216,11 +216,11 @@ function showHelp() {
   resultArea.className = 'visible';
   resultArea.innerHTML = `
     <div style="padding:14px;background:#f0fdf4;border-radius:10px;border:1px solid #bbf7d0;">
-      <p style="font-size:12.5px;font-weight:700;color:#166534;margin:0 0 8px">How to Use TruthLens AI</p>
+      <p style="font-size:12.5px;font-weight:700;color:#166534;margin:0 0 8px">How to Use VerolenteAI</p>
       <ul style="font-size:12px;color:#15803d;margin:0;padding-left:16px;line-height:1.8">
         <li>Type a claim or paste a URL above and press <strong>Go</strong></li>
         <li>Click <strong>Verify Current Page</strong> to fact-check what you're reading</li>
-        <li><strong>Right-click</strong> any text, image, or link → Verify with TruthLens</li>
+        <li><strong>Right-click</strong> any text, image, or link → Verify with VerolenteAI</li>
         <li><strong>Highlight text</strong> on any page → click the Verify bubble</li>
         <li>Look for the blue <strong>floating button</strong> on news sites</li>
       </ul>

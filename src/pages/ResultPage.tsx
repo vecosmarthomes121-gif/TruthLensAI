@@ -143,19 +143,19 @@ export default function ResultPage() {
   }, [id]);
 
   const shareToWhatsApp = () => {
-    const text = `TruthLens AI Verification:\n"${result?.claim}"\n\nTruth Score: ${result?.truthScore}%\n${result?.explanation}\n\nVerify at: ${window.location.href}`;
+    const text = `VerolenteAI Verification:\n"${result?.claim}"\n\nTruth Score: ${result?.truthScore}%\n${result?.explanation}\n\nVerify at: ${window.location.href}`;
     window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
   };
   const shareToFacebook = () => window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(window.location.href)}`, '_blank');
   const shareToTwitter = () => {
-    const text = `"${result?.claim}" - Truth Score: ${result?.truthScore}% | Verified by TruthLens AI`;
+    const text = `"${result?.claim}" - Truth Score: ${result?.truthScore}% | Verified by VerolenteAI`;
     window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(window.location.href)}`, '_blank');
   };
   const copyLink = () => { navigator.clipboard.writeText(window.location.href); toast.success('Link copied!'); setShowShareMenu(false); };
 
   const handleShare = async () => {
     if (navigator.share && /mobile|android|iphone|ipad/i.test(navigator.userAgent)) {
-      try { await navigator.share({ title: 'TruthLens AI', text: `"${result?.claim}" - ${result?.truthScore}%`, url: window.location.href }); } catch { }
+      try { await navigator.share({ title: 'VerolenteAI', text: `"${result?.claim}" - ${result?.truthScore}%`, url: window.location.href }); } catch { }
     } else { setShowShareMenu(p => !p); }
   };
 
@@ -167,7 +167,7 @@ export default function ResultPage() {
       const blob = await new Promise<Blob>(resolve => canvas.toBlob(b => resolve(b!), 'image/png'));
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
-      a.href = url; a.download = `truthlens-${result.id}.png`; document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
+      a.href = url; a.download = `verolente-${result.id}.png`; document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
       toast.success('Share card downloaded!');
     } catch { toast.error('Failed to generate share card'); } finally { setGeneratingImage(false); }
   };

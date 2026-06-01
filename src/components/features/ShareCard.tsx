@@ -36,7 +36,7 @@ export default function ShareCard({ result }: ShareCardProps) {
             </div>
             <div>
               <h1 className="text-5xl font-black text-white tracking-tight">
-                TruthLens AI
+                VerolenteAI
               </h1>
               <p className="text-white/80 text-2xl font-medium mt-1">Fact Verification Engine</p>
             </div>
@@ -105,7 +105,7 @@ export default function ShareCard({ result }: ShareCardProps) {
       <div className="relative z-10 border-t-2 border-white/20 pt-8">
         <div className="text-center">
           <p className="text-white/90 text-3xl font-medium">
-            Verify any claim at <span className="font-black text-white">TruthLens.AI</span>
+            Verify any claim at <span className="font-black text-white">VerolenteAI</span>
           </p>
           <p className="text-white/60 text-xl mt-2">Powered by OnSpace AI • Real-time Web Search</p>
         </div>

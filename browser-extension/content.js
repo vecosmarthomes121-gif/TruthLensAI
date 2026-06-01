@@ -1,10 +1,10 @@
-// TruthLens AI Content Script v2.0
+// VerolenteAI Content Script v2.0
 (function() {
   'use strict';
 
   // Prevent double injection
-  if (window.__truthlensLoaded) return;
-  window.__truthlensLoaded = true;
+  if (window.__verolenteLoaded) return;
+  window.__verolenteLoaded = true;
 
   let resultOverlay = null;
   let quickVerifyBtn = null;
@@ -17,7 +17,7 @@
     document.addEventListener('mouseup', onMouseUp);
     document.addEventListener('keydown', onKeyDown);
     chrome.runtime.onMessage.addListener(onMessage);
-    console.log('[TruthLens AI] Content script ready');
+    console.log('[VerolenteAI] Content script ready');
   }
 
   // ─── Floating Verify Button ────────────────────────────────────────────────
@@ -25,9 +25,9 @@
     if (!shouldShowFloatingButton()) return;
 
     const btn = document.createElement('div');
-    btn.id = 'truthlens-fab';
+    btn.id = 'verolente-fab';
     btn.setAttribute('role', 'button');
-    btn.setAttribute('aria-label', 'Verify this page with TruthLens AI');
+    btn.setAttribute('aria-label', 'Verify this page with VerolenteAI');
     btn.innerHTML = `
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
         <path d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
@@ -63,7 +63,7 @@
   // ─── Text Selection Quick-Verify ───────────────────────────────────────────
   function onMouseUp(e) {
     // Don't trigger inside our own overlay
-    if (e.target && e.target.closest && e.target.closest('#truthlens-overlay, #truthlens-fab')) return;
+    if (e.target && e.target.closest && e.target.closest('#verolente-overlay, #verolente-fab')) return;
 
     clearTimeout(selectionTimeout);
     selectionTimeout = setTimeout(() => {
@@ -89,13 +89,13 @@
     removeQuickVerifyBtn();
 
     const btn = document.createElement('button');
-    btn.id = 'truthlens-quick-verify';
-    btn.setAttribute('aria-label', 'Verify selected text with TruthLens AI');
+    btn.id = 'verolente-quick-verify';
+    btn.setAttribute('aria-label', 'Verify selected text with VerolenteAI');
     btn.innerHTML = `
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
         <path d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
       </svg>
-      Verify with TruthLens
+      Verify with VerolenteAI
     `;
 
     // Position relative to viewport
@@ -121,7 +121,7 @@
 
   function removeQuickVerifyBtn() {
     if (quickVerifyBtn) { quickVerifyBtn.remove(); quickVerifyBtn = null; }
-    const existing = document.getElementById('truthlens-quick-verify');
+    const existing = document.getElementById('verolente-quick-verify');
     if (existing) existing.remove();
   }
 
@@ -162,10 +162,10 @@
     removeResultOverlay();
 
     const overlay = document.createElement('div');
-    overlay.id = 'truthlens-overlay';
+    overlay.id = 'verolente-overlay';
     overlay.setAttribute('role', 'dialog');
     overlay.setAttribute('aria-modal', 'true');
-    overlay.setAttribute('aria-label', 'TruthLens AI Verification');
+    overlay.setAttribute('aria-label', 'VerolenteAI Verification');
 
     overlay.innerHTML = `
       <div class="tl-modal" role="document">
@@ -174,7 +174,7 @@
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
               <path d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
             </svg>
-            <span>TruthLens AI</span>
+            <span>VerolenteAI</span>
           </div>
           <button class="tl-close" aria-label="Close" id="tl-close-btn">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
@@ -326,7 +326,7 @@
       const shareBtn = document.getElementById('tl-share-result');
       if (shareBtn) {
         shareBtn.addEventListener('click', () => {
-          const shareText = `"${claim.substring(0, 100)}" - Truth Score: ${score}% | Verified by TruthLens AI`;
+          const shareText = `"${claim.substring(0, 100)}" - Truth Score: ${score}% | Verified by VerolenteAI`;
           if (navigator.clipboard) {
             navigator.clipboard.writeText(shareText).then(() => {
               shareBtn.textContent = '✅ Copied!';
@@ -364,7 +364,7 @@
 
   function removeResultOverlay() {
     if (resultOverlay) { resultOverlay.remove(); resultOverlay = null; }
-    const el = document.getElementById('truthlens-overlay');
+    const el = document.getElementById('verolente-overlay');
     if (el) el.remove();
   }
 

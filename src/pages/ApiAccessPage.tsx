@@ -12,7 +12,7 @@ import { cn } from '@/lib/utils';
 
 // ── Sample code snippets ──────────────────────────────────────────────────────
 
-const curlExample = `curl -X POST https://api.truthlens.ai/v1/verify \\
+const curlExample = `curl -X POST https://api.verolente.ai/v1/verify \\
   -H "Authorization: Bearer YOUR_API_KEY" \\
   -H "Content-Type: application/json" \\
   -d '{
@@ -20,7 +20,7 @@ const curlExample = `curl -X POST https://api.truthlens.ai/v1/verify \\
     "input_type": "text"
   }'`;
 
-const jsExample = `const response = await fetch('https://api.truthlens.ai/v1/verify', {
+const jsExample = `const response = await fetch('https://api.verolente.ai/v1/verify', {
   method: 'POST',
   headers: {
     'Authorization': 'Bearer YOUR_API_KEY',
@@ -150,7 +150,7 @@ const endpoints = [
 
 const inputTypes = [
   { icon: FileText, label: 'text', desc: 'Claims, headlines, and political statements', color: 'text-blue-600 bg-blue-50' },
-  { icon: LinkIcon, label: 'url', desc: 'Full articles — TruthLens extracts and analyses content', color: 'text-indigo-600 bg-indigo-50' },
+  { icon: LinkIcon, label: 'url', desc: 'Full articles — VerolenteAI extracts and analyses content', color: 'text-indigo-600 bg-indigo-50' },
   { icon: ImageIcon, label: 'image', desc: 'Deepfake, AI-generation, and manipulation detection', color: 'text-purple-600 bg-purple-50' },
   { icon: VideoIcon, label: 'video', desc: 'YouTube, TikTok, and uploaded video misinformation analysis', color: 'text-pink-600 bg-pink-50' },
 ];
@@ -255,7 +255,7 @@ export default function ApiAccessPage() {
             </div>
 
             <h1 className="text-4xl lg:text-5xl font-bold mb-5 leading-tight">
-              TruthLens AI API
+              VerolenteAI API
             </h1>
             <p className="text-lg text-white/80 mb-10 max-w-2xl mx-auto leading-relaxed">
               Integrate real-time AI fact-checking and deepfake detection directly into your application, CMS, or newsroom workflow — with a single REST API call.
@@ -310,7 +310,7 @@ export default function ApiAccessPage() {
                 One Endpoint.<br />Any Content Type.
               </h2>
               <p className="text-white/65 leading-relaxed mb-6">
-                Send a POST request with your claim, URL, image URL, or video URL. TruthLens handles the rest — web search, AI forensics, deepfake detection, and source citations — and returns a structured JSON response in seconds.
+                Send a POST request with your claim, URL, image URL, or video URL. VerolenteAI handles the rest — web search, AI forensics, deepfake detection, and source citations — and returns a structured JSON response in seconds.
               </p>
               <div className="grid grid-cols-2 gap-3">
                 {inputTypes.map(({ icon: Icon, label, desc, color }) => (
@@ -549,7 +549,7 @@ export default function ApiAccessPage() {
           <div className="max-w-3xl mx-auto flex items-start gap-3">
             <AlertTriangle className="h-5 w-5 text-amber-600 flex-shrink-0 mt-0.5" />
             <p className="text-sm text-amber-800 dark:text-amber-200 leading-relaxed">
-              <strong>Developer Note:</strong> The TruthLens AI API is currently in pre-release development. The endpoints, request/response shapes, and pricing shown are subject to change before general availability. Request early access below to be first in line and shape the final specification.
+              <strong>Developer Note:</strong> The VerolenteAI API is currently in pre-release development. The endpoints, request/response shapes, and pricing shown are subject to change before general availability. Request early access below to be first in line and shape the final specification.
             </p>
           </div>
         </div>
@@ -607,7 +607,7 @@ export default function ApiAccessPage() {
                 Try the Web App
               </button>
               <button
-                onClick={() => window.open('mailto:api@truthlens.ai', '_blank')}
+                onClick={() => window.open('mailto:api@verolente.ai', '_blank')}
                 className="inline-flex items-center gap-2 px-8 py-3 rounded-xl bg-white/10 text-white font-semibold border border-white/20 hover:bg-white/20 transition-all"
               >
                 Contact API Team

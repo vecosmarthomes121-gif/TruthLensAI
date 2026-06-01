@@ -1,4 +1,4 @@
-// TruthLens AI Background Service Worker v2.0
+// VerolenteAI Background Service Worker v2.0
 
 const TRUTHLENS_API = 'https://doztmrzytayxhgjbdozt.backend.onspace.ai/functions/v1/verify-claim';
 const TRUTHLENS_BASE_URL = 'https://doztmrzytayxhgjbdozt.onspace.app';
@@ -8,7 +8,7 @@ chrome.runtime.onInstalled.addListener(() => {
   // Context menu for selected text
   chrome.contextMenus.create({
     id: 'verify-text',
-    title: '🔍 Verify with TruthLens AI',
+    title: '🔍 Verify with VerolenteAI',
     contexts: ['selection']
   });
 
@@ -33,7 +33,7 @@ chrome.runtime.onInstalled.addListener(() => {
     contexts: ['page']
   });
 
-  console.log('[TruthLens AI] Extension installed successfully');
+  console.log('[VerolenteAI] Extension installed successfully');
 });
 
 // Handle context menu clicks
@@ -66,7 +66,7 @@ chrome.contextMenus.onClicked.addListener((info, tab) => {
   if (tab && tab.id && verificationData) {
     // Inject content script first if needed, then send message
     chrome.scripting.executeScript(
-      { target: { tabId: tab.id }, func: () => window.__truthlensLoaded },
+      { target: { tabId: tab.id }, func: () => window.__verolenteLoaded },
     ).then(results => {
       const isLoaded = results && results[0] && results[0].result;
       if (isLoaded) {
@@ -91,7 +91,7 @@ chrome.contextMenus.onClicked.addListener((info, tab) => {
 // Handle messages from content script and popup
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   if (request.action === 'verifyContent') {
-    verifyWithTruthLens(request.data)
+    verifyWithVerolente(request.data)
       .then(result => {
         // Increment verification count in storage
         chrome.storage.local.get(['totalVerifications'], (stored) => {
@@ -116,7 +116,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         sendResponse({ success: true, result });
       })
       .catch(error => {
-        console.error('[TruthLens AI] Verification error:', error);
+        console.error('[VerolenteAI] Verification error:', error);
         sendResponse({ success: false, error: error.message });
       });
 
@@ -134,8 +134,8 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   }
 });
 
-// Verify content with TruthLens API
-async function verifyWithTruthLens(data) {
+// Verify content with VerolenteAI API
+async function verifyWithVerolente(data) {
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), 60000); // 60s timeout
 

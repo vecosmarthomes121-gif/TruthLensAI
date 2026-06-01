@@ -1,6 +1,6 @@
 import { VerificationResult } from '@/types';
 
-const STORAGE_KEY = 'truthlens_history';
+const STORAGE_KEY = 'verolente_history';
 
 export const saveVerification = (result: VerificationResult): void => {
   const history = getVerificationHistory();
