@@ -32,7 +32,7 @@ const methods = [
   {
     icon: MousePointer,
     title: 'Right-Click to Verify',
-    desc: 'Right-click text, images, or links for an instant VerolenteAI option in the context menu.',
+    desc: 'Right-click text, images, or links for an instant VeroLente AI option in the context menu.',
     color: 'from-purple-600 to-violet-600',
   },
   {
@@ -133,7 +133,7 @@ export default function ExtensionPage() {
             </div>
 
             <h1 className="text-4xl lg:text-5xl font-bold mb-4 leading-tight">
-              VerolenteAI
+              VeroLente AI
               <br />
               <span className="text-white/80 text-3xl lg:text-4xl font-semibold">Browser Extension</span>
             </h1>
@@ -184,7 +184,7 @@ export default function ExtensionPage() {
           <div className="max-w-3xl mx-auto text-center">
             <h2 className="text-2xl lg:text-3xl font-bold mb-4">Install in Seconds</h2>
             <p className="text-muted-foreground mb-12">
-              Once available on the Chrome Web Store, installing VerolenteAI is the same as any other extension — no technical steps required.
+              Once available on the Chrome Web Store, installing VeroLente AI is the same as any other extension — no technical steps required.
             </p>
 
             <div className="grid grid-cols-3 gap-6 max-w-xl mx-auto">
@@ -269,7 +269,7 @@ export default function ExtensionPage() {
                 {/* Header */}
                 <div className="bg-gradient-to-r from-blue-600 to-purple-600 px-5 py-4 flex items-center justify-between">
                   <div className="flex items-center gap-2 text-white font-bold text-sm">
-                    <Shield className="h-5 w-5" /> VerolenteAI
+                    <Shield className="h-5 w-5" /> VeroLente AI
                   </div>
                   <div className="h-7 w-7 rounded-lg bg-white/20 flex items-center justify-center text-white text-xs">✕</div>
                 </div>
@@ -361,7 +361,7 @@ export default function ExtensionPage() {
                 <PartyPopper className="h-12 w-12 mx-auto mb-4 text-yellow-300" />
                 <h2 className="text-3xl font-bold mb-3">You're on the List!</h2>
                 <p className="text-white/85 mb-8 max-w-lg mx-auto leading-relaxed">
-                  We'll send you an email the moment VerolenteAI lands on the Chrome Web Store. In the meantime, the full experience is available on the web.
+                  We'll send you an email the moment VeroLente AI lands on the Chrome Web Store. In the meantime, the full experience is available on the web.
                 </p>
               </>
             ) : (

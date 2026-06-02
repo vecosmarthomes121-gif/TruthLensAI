@@ -1,4 +1,4 @@
-// VerolenteAI Background Service Worker v2.0
+// VeroLente AI Background Service Worker v2.0
 
 const TRUTHLENS_API = 'https://doztmrzytayxhgjbdozt.backend.onspace.ai/functions/v1/verify-claim';
 const TRUTHLENS_BASE_URL = 'https://doztmrzytayxhgjbdozt.onspace.app';
@@ -8,7 +8,7 @@ chrome.runtime.onInstalled.addListener(() => {
   // Context menu for selected text
   chrome.contextMenus.create({
     id: 'verify-text',
-    title: '🔍 Verify with VerolenteAI',
+    title: '🔍 Verify with VeroLente AI',
     contexts: ['selection']
   });
 
@@ -33,7 +33,7 @@ chrome.runtime.onInstalled.addListener(() => {
     contexts: ['page']
   });
 
-  console.log('[VerolenteAI] Extension installed successfully');
+  console.log('[VeroLente AI] Extension installed successfully');
 });
 
 // Handle context menu clicks
@@ -116,7 +116,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         sendResponse({ success: true, result });
       })
       .catch(error => {
-        console.error('[VerolenteAI] Verification error:', error);
+        console.error('[VeroLente AI] Verification error:', error);
         sendResponse({ success: false, error: error.message });
       });
 
@@ -134,7 +134,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   }
 });
 
-// Verify content with VerolenteAI API
+// Verify content with VeroLente AI API
 async function verifyWithVerolente(data) {
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), 60000); // 60s timeout

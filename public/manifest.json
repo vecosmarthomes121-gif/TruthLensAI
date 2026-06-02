@@ -1,6 +1,6 @@
 {
-  "name": "TruthLens AI - Fact Verification",
-  "short_name": "TruthLens",
+  "name": "VeroLente AI - Fact Verification",
+  "short_name": "VeroLente AI",
   "description": "AI-powered fact-checking platform. Verify news, images, videos, and claims instantly with real-time analysis.",
   "start_url": "/",
   "display": "standalone",

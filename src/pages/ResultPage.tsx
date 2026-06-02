@@ -143,19 +143,19 @@ export default function ResultPage() {
   }, [id]);
 
   const shareToWhatsApp = () => {
-    const text = `VerolenteAI Verification:\n"${result?.claim}"\n\nTruth Score: ${result?.truthScore}%\n${result?.explanation}\n\nVerify at: ${window.location.href}`;
+    const text = `VeroLente AI Verification:\n"${result?.claim}"\n\nTruth Score: ${result?.truthScore}%\n${result?.explanation}\n\nVerify at: ${window.location.href}`;
     window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
   };
   const shareToFacebook = () => window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(window.location.href)}`, '_blank');
   const shareToTwitter = () => {
-    const text = `"${result?.claim}" - Truth Score: ${result?.truthScore}% | Verified by VerolenteAI`;
+    const text = `"${result?.claim}" - Truth Score: ${result?.truthScore}% | Verified by VeroLente AI`;
     window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(window.location.href)}`, '_blank');
   };
   const copyLink = () => { navigator.clipboard.writeText(window.location.href); toast.success('Link copied!'); setShowShareMenu(false); };
 
   const handleShare = async () => {
     if (navigator.share && /mobile|android|iphone|ipad/i.test(navigator.userAgent)) {
-      try { await navigator.share({ title: 'VerolenteAI', text: `"${result?.claim}" - ${result?.truthScore}%`, url: window.location.href }); } catch { }
+      try { await navigator.share({ title: 'VeroLente AI', text: `"${result?.claim}" - ${result?.truthScore}%`, url: window.location.href }); } catch { }
     } else { setShowShareMenu(p => !p); }
   };
 

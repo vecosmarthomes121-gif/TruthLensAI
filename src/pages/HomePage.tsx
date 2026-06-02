@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router-dom';
-import { Shield, Zap, Globe, TrendingUp, Lock, BarChart3, Puzzle, Download } from 'lucide-react';
+import { Shield, Zap, Globe, TrendingUp, Lock, BarChart3, Puzzle, Download, ExternalLink } from 'lucide-react';
 import heroImage from '@/assets/hero-verification.jpg';
 
 export default function HomePage() {
@@ -52,6 +52,22 @@ export default function HomePage() {
         <div className="container">
           <div className="grid lg:grid-cols-2 gap-12 items-center">
             <div>
+              {/* Product Hunt Badge */}
+              <a
+                href="https://www.producthunt.com/@victor_o_brien/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2.5 px-3 py-1.5 rounded-full bg-[#ff6154]/10 border border-[#ff6154]/30 text-[#cc3f31] text-sm font-semibold mb-4 hover:bg-[#ff6154]/20 transition-colors group"
+              >
+                <svg width="16" height="16" viewBox="0 0 240 240" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <circle cx="120" cy="120" r="120" fill="#FF6154"/>
+                  <path d="M136.001 120H104V88H136.001C144.837 88 152 95.163 152 104C152 112.837 144.837 120 136.001 120Z" fill="white"/>
+                  <path d="M104 120H136.001C144.837 120 152 127.163 152 136C152 144.837 144.837 152 136.001 152H104V120Z" fill="white" fillOpacity="0.6"/>
+                </svg>
+                Featured on Product Hunt
+                <ExternalLink className="h-3 w-3 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
+              </a>
+
               <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-100 text-blue-700 text-sm font-medium mb-6">
                 <Shield className="h-4 w-4" />
                 AI-Powered Truth Engine
@@ -88,6 +104,57 @@ export default function HomePage() {
                 alt="AI Verification Platform"
                 className="relative rounded-2xl shadow-2xl w-full"
               />
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Product Hunt Full Banner */}
+      <section className="py-10 bg-gradient-to-r from-[#ff6154]/5 via-[#ff6154]/10 to-[#ff6154]/5 border-y border-[#ff6154]/15">
+        <div className="container">
+          <div className="flex flex-col md:flex-row items-center justify-between gap-6 max-w-5xl mx-auto">
+            <div className="flex items-center gap-5">
+              {/* PH Logo */}
+              <div className="h-16 w-16 rounded-2xl bg-[#ff6154] flex items-center justify-center shadow-lg flex-shrink-0">
+                <svg width="36" height="36" viewBox="0 0 240 240" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M136.001 120H104V88H136.001C144.837 88 152 95.163 152 104C152 112.837 144.837 120 136.001 120Z" fill="white"/>
+                  <path d="M104 120H136.001C144.837 120 152 127.163 152 136C152 144.837 144.837 152 136.001 152H104V120Z" fill="white" fillOpacity="0.6"/>
+                </svg>
+              </div>
+              <div>
+                <p className="text-xs font-bold uppercase tracking-widest text-[#cc3f31] mb-0.5">Product Hunt</p>
+                <h3 className="text-xl font-bold text-gray-900 dark:text-white leading-tight">
+                  Support VeroLente AI on Product Hunt
+                </h3>
+                <p className="text-sm text-muted-foreground mt-0.5">
+                  We're building the world's most accessible AI fact-checker — your upvote helps us reach more people fighting misinformation.
+                </p>
+              </div>
+            </div>
+
+            <div className="flex flex-col sm:flex-row gap-3 flex-shrink-0">
+              <a
+                href="https://www.producthunt.com/@victor_o_brien/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-[#ff6154] text-white font-bold hover:bg-[#e5534b] hover:shadow-lg transition-all whitespace-nowrap"
+              >
+                <svg width="18" height="18" viewBox="0 0 240 240" fill="none">
+                  <circle cx="120" cy="120" r="120" fill="white" fillOpacity="0.2"/>
+                  <path d="M136.001 120H104V88H136.001C144.837 88 152 95.163 152 104C152 112.837 144.837 120 136.001 120Z" fill="white"/>
+                  <path d="M104 120H136.001C144.837 120 152 127.163 152 136C152 144.837 144.837 152 136.001 152H104V120Z" fill="white" fillOpacity="0.6"/>
+                </svg>
+                Upvote Us ↑
+              </a>
+              <a
+                href="https://www.producthunt.com/@victor_o_brien/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl border-2 border-[#ff6154]/40 text-[#cc3f31] font-semibold hover:bg-[#ff6154]/10 transition-all whitespace-nowrap"
+              >
+                View Profile
+                <ExternalLink className="h-4 w-4" />
+              </a>
             </div>
           </div>
         </div>
@@ -144,7 +211,7 @@ export default function HomePage() {
         <div className="container">
           <div className="text-center mb-16">
             <h2 className="text-3xl lg:text-4xl font-bold mb-4">
-              How TruthLens AI Works
+              How VeroLente AI Works
             </h2>
             <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
               Five-stage AI verification pipeline analyzing content in real-time
@@ -241,7 +308,7 @@ export default function HomePage() {
               Stop Misinformation Before It Spreads
             </h2>
             <p className="text-lg mb-8 text-white/90 max-w-2xl mx-auto">
-              Join millions using TruthLens AI to verify news and combat fake information
+              Join millions using VeroLente AI to verify news and combat fake information
             </p>
             <button
               onClick={() => navigate('/verify')}

@@ -1,4 +1,4 @@
-// VerolenteAI Content Script v2.0
+// VeroLente AI Content Script v2.0
 (function() {
   'use strict';
 
@@ -17,7 +17,7 @@
     document.addEventListener('mouseup', onMouseUp);
     document.addEventListener('keydown', onKeyDown);
     chrome.runtime.onMessage.addListener(onMessage);
-    console.log('[VerolenteAI] Content script ready');
+    console.log('[VeroLente AI] Content script ready');
   }
 
   // ─── Floating Verify Button ────────────────────────────────────────────────
@@ -27,7 +27,7 @@
     const btn = document.createElement('div');
     btn.id = 'verolente-fab';
     btn.setAttribute('role', 'button');
-    btn.setAttribute('aria-label', 'Verify this page with VerolenteAI');
+    btn.setAttribute('aria-label', 'Verify this page with VeroLente AI');
     btn.innerHTML = `
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
         <path d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
@@ -90,12 +90,12 @@
 
     const btn = document.createElement('button');
     btn.id = 'verolente-quick-verify';
-    btn.setAttribute('aria-label', 'Verify selected text with VerolenteAI');
+    btn.setAttribute('aria-label', 'Verify selected text with VeroLente AI');
     btn.innerHTML = `
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
         <path d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
       </svg>
-      Verify with VerolenteAI
+      Verify with VeroLente AI
     `;
 
     // Position relative to viewport
@@ -165,7 +165,7 @@
     overlay.id = 'verolente-overlay';
     overlay.setAttribute('role', 'dialog');
     overlay.setAttribute('aria-modal', 'true');
-    overlay.setAttribute('aria-label', 'VerolenteAI Verification');
+    overlay.setAttribute('aria-label', 'VeroLente AI Verification');
 
     overlay.innerHTML = `
       <div class="tl-modal" role="document">
@@ -174,7 +174,7 @@
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
               <path d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
             </svg>
-            <span>VerolenteAI</span>
+            <span>VeroLente AI</span>
           </div>
           <button class="tl-close" aria-label="Close" id="tl-close-btn">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
@@ -326,7 +326,7 @@
       const shareBtn = document.getElementById('tl-share-result');
       if (shareBtn) {
         shareBtn.addEventListener('click', () => {
-          const shareText = `"${claim.substring(0, 100)}" - Truth Score: ${score}% | Verified by VerolenteAI`;
+          const shareText = `"${claim.substring(0, 100)}" - Truth Score: ${score}% | Verified by VeroLente AI`;
           if (navigator.clipboard) {
             navigator.clipboard.writeText(shareText).then(() => {
               shareBtn.textContent = '✅ Copied!';
