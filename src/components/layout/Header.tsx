@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom';
-import { Menu, X, LogOut, User, Puzzle, Info } from 'lucide-react';
+import { Menu, X, LogOut, User, Puzzle, Info, Sun, Moon } from 'lucide-react';
+import { useTheme } from '@/hooks/useTheme';
 import { useState } from 'react';
 import { useAuth } from '@/stores/authStore';
 import { authService } from '@/lib/auth';
@@ -10,6 +11,7 @@ export default function Header() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [showAuthModal, setShowAuthModal] = useState(false);
   const { user, logout } = useAuth();
+  const { isDark, toggleTheme } = useTheme();
 
   const handleSignOut = async () => {
     try {
@@ -72,18 +74,32 @@ export default function Header() {
               History
             </Link>
             
+            {/* Dark Mode Toggle */}
+            <button
+              onClick={toggleTheme}
+              className="p-2 rounded-lg border border-border hover:bg-accent transition-colors"
+              title={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
+              aria-label={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
+            >
+              {isDark ? (
+                <Sun className="h-4 w-4 text-amber-500" />
+              ) : (
+                <Moon className="h-4 w-4 text-slate-600" />
+              )}
+            </button>
+
             {user ? (
               <div className="flex items-center gap-3">
-                <div className="flex items-center gap-2 px-3 py-1.5 bg-gray-100 rounded-lg">
-                  <User className="h-4 w-4 text-gray-600" />
+                <div className="flex items-center gap-2 px-3 py-1.5 bg-gray-100 dark:bg-gray-800 rounded-lg">
+                  <User className="h-4 w-4 text-gray-600 dark:text-gray-400" />
                   <span className="text-sm font-medium">{user.username}</span>
                 </div>
                 <button
                   onClick={handleSignOut}
-                  className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                  className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
                   title="Sign out"
                 >
-                  <LogOut className="h-5 w-5 text-gray-600" />
+                  <LogOut className="h-5 w-5 text-gray-600 dark:text-gray-400" />
                 </button>
               </div>
             ) : (
@@ -179,10 +195,22 @@ export default function Header() {
                 History
               </Link>
               
+              {/* Dark Mode Toggle (mobile) */}
+              <button
+                onClick={toggleTheme}
+                className="flex items-center gap-2 text-sm font-medium text-foreground/80 py-2"
+              >
+                {isDark ? (
+                  <><Sun className="h-4 w-4 text-amber-500" /> Switch to Light Mode</>
+                ) : (
+                  <><Moon className="h-4 w-4 text-slate-600" /> Switch to Dark Mode</>
+                )}
+              </button>
+
               {user ? (
                 <>
-                  <div className="flex items-center gap-2 px-3 py-2 bg-gray-100 rounded-lg">
-                    <User className="h-4 w-4 text-gray-600" />
+                  <div className="flex items-center gap-2 px-3 py-2 bg-gray-100 dark:bg-gray-800 rounded-lg">
+                    <User className="h-4 w-4 text-gray-600 dark:text-gray-400" />
                     <span className="text-sm font-medium">{user.username}</span>
                   </div>
                   <button

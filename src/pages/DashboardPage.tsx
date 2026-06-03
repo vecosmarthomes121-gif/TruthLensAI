@@ -12,8 +12,9 @@ import {
 import { 
   TrendingUp, Target, Award, Flame, BarChart3, 
   CheckCircle, XCircle, AlertTriangle, Lock, Trophy,
-  ArrowUpRight, Calendar, Zap, Bell, BellOff
+  ArrowUpRight, Calendar, Zap, Bell, BellOff, Sun, Moon
 } from 'lucide-react';
+import { useTheme } from '@/hooks/useTheme';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 
@@ -25,6 +26,7 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
   const [notificationsEnabled, setNotificationsEnabled] = useState(false);
   const previousBadgesRef = useRef<Set<string>>(new Set());
+  const { isDark, toggleTheme } = useTheme();
 
   useEffect(() => {
     // Check notification status
@@ -141,29 +143,49 @@ export default function DashboardPage() {
               <BarChart3 className="h-8 w-8 text-primary" />
               <h1 className="text-4xl font-bold">Your Dashboard</h1>
             </div>
-            {notificationService.isSupported() && (
+            <div className="flex items-center gap-2">
+              {/* Dark / Light mode toggle */}
               <button
-                onClick={handleToggleNotifications}
+                onClick={toggleTheme}
                 className={cn(
-                  "flex items-center gap-2 px-4 py-2 rounded-lg border transition-colors",
-                  notificationsEnabled
-                    ? "bg-blue-50 border-blue-500 text-blue-700 dark:bg-blue-950/20"
-                    : "hover:bg-gray-100 dark:hover:bg-gray-800"
+                  "flex items-center gap-2 px-4 py-2 rounded-lg border transition-all font-medium text-sm",
+                  isDark
+                    ? "bg-amber-50 border-amber-300 text-amber-700 hover:bg-amber-100 dark:bg-amber-900/20 dark:border-amber-700 dark:text-amber-400"
+                    : "bg-slate-100 border-slate-300 text-slate-700 hover:bg-slate-200 dark:bg-slate-800 dark:border-slate-600 dark:text-slate-300"
                 )}
+                aria-label={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
               >
-                {notificationsEnabled ? (
-                  <>
-                    <Bell className="h-4 w-4" />
-                    <span className="text-sm font-medium">Notifications On</span>
-                  </>
+                {isDark ? (
+                  <><Sun className="h-4 w-4" /> Light Mode</>
                 ) : (
-                  <>
-                    <BellOff className="h-4 w-4" />
-                    <span className="text-sm font-medium">Enable Notifications</span>
-                  </>
+                  <><Moon className="h-4 w-4" /> Dark Mode</>
                 )}
               </button>
-            )}
+
+              {notificationService.isSupported() && (
+                <button
+                  onClick={handleToggleNotifications}
+                  className={cn(
+                    "flex items-center gap-2 px-4 py-2 rounded-lg border transition-colors",
+                    notificationsEnabled
+                      ? "bg-blue-50 border-blue-500 text-blue-700 dark:bg-blue-950/20"
+                      : "hover:bg-gray-100 dark:hover:bg-gray-800"
+                  )}
+                >
+                  {notificationsEnabled ? (
+                    <>
+                      <Bell className="h-4 w-4" />
+                      <span className="text-sm font-medium">Notifications On</span>
+                    </>
+                  ) : (
+                    <>
+                      <BellOff className="h-4 w-4" />
+                      <span className="text-sm font-medium">Enable Notifications</span>
+                    </>
+                  )}
+                </button>
+              )}
+            </div>
           </div>
           <p className="text-lg text-muted-foreground">
             Track your fact-checking journey and contribution impact
