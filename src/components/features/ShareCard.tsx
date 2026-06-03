@@ -1,5 +1,5 @@
 import { VerificationResult } from '@/types';
-import { Shield, CheckCircle, AlertTriangle, XCircle } from 'lucide-react';
+import { CheckCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface ShareCardProps {
@@ -31,8 +31,8 @@ export default function ShareCard({ result }: ShareCardProps) {
         {/* Header */}
         <div className="flex items-center justify-between mb-12">
           <div className="flex items-center gap-4">
-            <div className="h-24 w-24 rounded-3xl bg-white/10 backdrop-blur-sm border-2 border-white/20 flex items-center justify-center shadow-2xl">
-              <Shield className="h-14 w-14 text-white" />
+            <div className="h-24 w-24 rounded-3xl overflow-hidden shadow-2xl border-2 border-white/20">
+              <img src="/icon-512.png" alt="VeroLente AI" className="w-full h-full object-cover" />
             </div>
             <div>
               <h1 className="text-5xl font-black text-white tracking-tight">
@@ -88,8 +88,8 @@ export default function ShareCard({ result }: ShareCardProps) {
                 </div>
               </div>
               <div className="flex items-center gap-4">
-                <div className="w-16 h-16 rounded-2xl bg-white/10 backdrop-blur-sm border border-white/20 flex items-center justify-center">
-                  <Shield className="h-8 w-8 text-white" />
+                <div className="w-16 h-16 rounded-2xl overflow-hidden border border-white/20 shadow-lg">
+                  <img src="/icon-512.png" alt="VeroLente AI" className="w-full h-full object-cover" />
                 </div>
                 <div>
                   <div className="text-4xl font-bold text-white">AI</div>

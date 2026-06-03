@@ -1,4 +1,4 @@
-import { Shield, Twitter, Facebook, Linkedin, Github } from 'lucide-react';
+import { Twitter, Facebook, Linkedin, Github } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 export default function Footer() {
@@ -9,9 +9,11 @@ export default function Footer() {
           {/* Brand */}
           <div className="col-span-1 md:col-span-2">
             <div className="flex items-center gap-2 mb-4">
-              <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-blue-600 to-purple-600 flex items-center justify-center">
-                <Shield className="h-4 w-4 text-white" />
-              </div>
+              <img
+                src="/icon-512.png"
+                alt="VeroLente AI"
+                className="h-8 w-8 rounded-lg object-cover"
+              />
               <span className="text-lg font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
                 VeroLente AI
               </span>

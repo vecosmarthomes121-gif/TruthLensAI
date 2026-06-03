@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { Shield, Menu, X, LogOut, User, TrendingUp, History, BarChart3, Users, FileText, Puzzle, Info } from 'lucide-react';
+import { Menu, X, LogOut, User, Puzzle, Info } from 'lucide-react';
 import { useState } from 'react';
 import { useAuth } from '@/stores/authStore';
 import { authService } from '@/lib/auth';
@@ -26,9 +26,11 @@ export default function Header() {
       <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="container flex h-16 items-center justify-between">
           <Link to="/" className="flex items-center gap-2 group">
-            <div className="h-9 w-9 rounded-lg bg-gradient-to-br from-blue-600 to-purple-600 flex items-center justify-center group-hover:shadow-lg transition-shadow">
-              <Shield className="h-5 w-5 text-white" />
-            </div>
+            <img
+              src="/icon-512.png"
+              alt="VeroLente AI"
+              className="h-9 w-9 rounded-lg object-cover group-hover:shadow-lg transition-shadow"
+            />
             <span className="text-xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
               VeroLente AI
             </span>
