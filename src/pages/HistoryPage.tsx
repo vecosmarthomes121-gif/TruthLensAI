@@ -140,7 +140,7 @@ export default function HistoryPage() {
         {/* Delete All Confirmation Modal */}
         {showDeleteAllConfirm && (
           <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-            <div className="bg-white dark:bg-gray-800 rounded-xl p-6 max-w-md w-full shadow-2xl">
+            <div className="bg-white dark:bg-gray-900 rounded-xl p-6 max-w-md w-full shadow-2xl">
               <div className="flex items-start gap-4 mb-4">
                 <div className="h-12 w-12 rounded-full bg-red-100 dark:bg-red-900/20 flex items-center justify-center flex-shrink-0">
                   <AlertTriangle className="h-6 w-6 text-red-600" />

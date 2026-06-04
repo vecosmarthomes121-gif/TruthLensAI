@@ -3,6 +3,7 @@ import { useEffect } from 'react';
 import { Toaster } from 'sonner';
 import Header from '@/components/layout/Header';
 import Footer from '@/components/layout/Footer';
+import MobileBottomNav from '@/components/layout/MobileBottomNav';
 import HomePage from '@/pages/HomePage';
 import VerifyPage from '@/pages/VerifyPage';
 import ResultPage from '@/pages/ResultPage';
@@ -60,7 +61,7 @@ function App() {
     <BrowserRouter>
       <div className="flex flex-col min-h-screen">
         <Header />
-        <main className="flex-1">
+        <main className="flex-1 pb-[80px] md:pb-0">
           <Routes>
             <Route path="/" element={<HomePage />} />
             <Route path="/verify" element={<VerifyPage />} />
@@ -79,6 +80,7 @@ function App() {
           </Routes>
         </main>
         <Footer />
+        <MobileBottomNav />
       </div>
       <Toaster position="top-center" richColors />
     </BrowserRouter>

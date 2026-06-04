@@ -98,7 +98,7 @@ export default function TeamsPage() {
         {/* Create Team Modal */}
         {showCreateModal && (
           <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-            <div className="bg-white dark:bg-gray-800 rounded-xl p-6 max-w-md w-full shadow-2xl">
+            <div className="bg-white dark:bg-gray-900 rounded-xl p-6 max-w-md w-full shadow-2xl">
               <h3 className="text-xl font-bold mb-4">Create New Team</h3>
               <form onSubmit={handleCreateTeam}>
                 <div className="mb-4">

@@ -84,7 +84,7 @@ export default function Header() {
               {isDark ? (
                 <Sun className="h-4 w-4 text-amber-500" />
               ) : (
-                <Moon className="h-4 w-4 text-slate-600" />
+                <Moon className="h-4 w-4 text-slate-600 dark:text-slate-400" />
               )}
             </button>
 
@@ -92,7 +92,7 @@ export default function Header() {
               <div className="flex items-center gap-3">
                 <div className="flex items-center gap-2 px-3 py-1.5 bg-gray-100 dark:bg-gray-800 rounded-lg">
                   <User className="h-4 w-4 text-gray-600 dark:text-gray-400" />
-                  <span className="text-sm font-medium">{user.username}</span>
+                  <span className="text-sm font-medium text-foreground">{user.username}</span>
                 </div>
                 <button
                   onClick={handleSignOut}
@@ -112,113 +112,88 @@ export default function Header() {
             )}
           </nav>
 
-          {/* Mobile Menu Button */}
-          <button 
-            className="md:hidden p-2"
-            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-          >
-            {mobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
-          </button>
+          {/* Mobile: dark mode + hamburger */}
+          <div className="md:hidden flex items-center gap-1">
+            <button
+              onClick={toggleTheme}
+              className="p-2 rounded-lg hover:bg-accent transition-colors"
+              aria-label={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
+            >
+              {isDark ? (
+                <Sun className="h-5 w-5 text-amber-500" />
+              ) : (
+                <Moon className="h-5 w-5 text-slate-500" />
+              )}
+            </button>
+            <button
+              className="p-2"
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            >
+              {mobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+            </button>
+          </div>
         </div>
 
-        {/* Mobile Navigation */}
+        {/* Mobile Navigation — Home/Verify/Trending/Dashboard are in bottom nav */}
         {mobileMenuOpen && (
           <div className="md:hidden border-t bg-background">
-            <nav className="container py-4 flex flex-col gap-3">
-              <Link 
-                to="/" 
-                className="text-sm font-medium text-foreground/80 hover:text-foreground py-2"
-                onClick={() => setMobileMenuOpen(false)}
-              >
-                Home
-              </Link>
-              <Link 
-                to="/verify" 
-                className="text-sm font-medium text-foreground/80 hover:text-foreground py-2"
-                onClick={() => setMobileMenuOpen(false)}
-              >
-                Verify
-              </Link>
-              <Link 
-                to="/trending" 
-                className="text-sm font-medium text-foreground/80 hover:text-foreground py-2"
-                onClick={() => setMobileMenuOpen(false)}
-              >
-                Trending
-              </Link>
+            <nav className="container py-4 flex flex-col gap-1">
               {user && (
                 <>
-                  <Link 
-                    to="/dashboard" 
-                    className="text-sm font-medium text-foreground/80 hover:text-foreground py-2"
-                    onClick={() => setMobileMenuOpen(false)}
-                  >
-                    Dashboard
-                  </Link>
-                  <Link 
-                    to="/teams" 
-                    className="text-sm font-medium text-foreground/80 hover:text-foreground py-2"
+                  <Link
+                    to="/teams"
+                    className="text-sm font-medium text-foreground/80 hover:text-foreground hover:bg-accent px-3 py-2.5 rounded-lg transition-colors"
                     onClick={() => setMobileMenuOpen(false)}
                   >
                     Teams
                   </Link>
-                  <Link 
-                    to="/templates" 
-                    className="text-sm font-medium text-foreground/80 hover:text-foreground py-2"
+                  <Link
+                    to="/templates"
+                    className="text-sm font-medium text-foreground/80 hover:text-foreground hover:bg-accent px-3 py-2.5 rounded-lg transition-colors"
                     onClick={() => setMobileMenuOpen(false)}
                   >
                     Templates
                   </Link>
                 </>
               )}
-              <Link 
-                to="/extension" 
-                className="text-sm font-medium text-foreground/80 hover:text-foreground py-2 flex items-center gap-2"
+              <Link
+                to="/history"
+                className="text-sm font-medium text-foreground/80 hover:text-foreground hover:bg-accent px-3 py-2.5 rounded-lg transition-colors"
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                History
+              </Link>
+              <Link
+                to="/extension"
+                className="text-sm font-medium text-foreground/80 hover:text-foreground hover:bg-accent px-3 py-2.5 rounded-lg transition-colors flex items-center gap-2"
                 onClick={() => setMobileMenuOpen(false)}
               >
                 <Puzzle className="h-4 w-4" />
                 Extension
               </Link>
-              <Link 
-                to="/about" 
-                className="text-sm font-medium text-foreground/80 hover:text-foreground py-2 flex items-center gap-2"
+              <Link
+                to="/about"
+                className="text-sm font-medium text-foreground/80 hover:text-foreground hover:bg-accent px-3 py-2.5 rounded-lg transition-colors flex items-center gap-2"
                 onClick={() => setMobileMenuOpen(false)}
               >
                 <Info className="h-4 w-4" />
                 About
               </Link>
-              <Link 
-                to="/history" 
-                className="text-sm font-medium text-foreground/80 hover:text-foreground py-2"
-                onClick={() => setMobileMenuOpen(false)}
-              >
-                History
-              </Link>
-              
-              {/* Dark Mode Toggle (mobile) */}
-              <button
-                onClick={toggleTheme}
-                className="flex items-center gap-2 text-sm font-medium text-foreground/80 py-2"
-              >
-                {isDark ? (
-                  <><Sun className="h-4 w-4 text-amber-500" /> Switch to Light Mode</>
-                ) : (
-                  <><Moon className="h-4 w-4 text-slate-600" /> Switch to Dark Mode</>
-                )}
-              </button>
+
+              <div className="border-t my-2" />
 
               {user ? (
                 <>
-                  <div className="flex items-center gap-2 px-3 py-2 bg-gray-100 dark:bg-gray-800 rounded-lg">
-                    <User className="h-4 w-4 text-gray-600 dark:text-gray-400" />
-                    <span className="text-sm font-medium">{user.username}</span>
+                  <div className="flex items-center gap-2 px-3 py-2 bg-muted rounded-lg">
+                    <User className="h-4 w-4 text-muted-foreground" />
+                    <span className="text-sm font-medium text-foreground">{user.username}</span>
                   </div>
                   <button
                     onClick={() => {
                       handleSignOut();
                       setMobileMenuOpen(false);
                     }}
-                    className="text-sm font-medium text-red-600 hover:text-red-700 py-2 text-left"
+                    className="text-sm font-medium text-red-600 dark:text-red-400 hover:text-red-700 px-3 py-2.5 text-left rounded-lg hover:bg-red-50 dark:hover:bg-red-950/20 transition-colors"
                   >
                     Sign Out
                   </button>
@@ -229,7 +204,7 @@ export default function Header() {
                     setShowAuthModal(true);
                     setMobileMenuOpen(false);
                   }}
-                  className="px-4 py-2 rounded-lg bg-gradient-to-r from-blue-600 to-purple-600 text-white text-sm font-semibold text-center mt-2"
+                  className="px-4 py-2.5 rounded-lg bg-gradient-to-r from-blue-600 to-purple-600 text-white text-sm font-semibold text-center mt-1"
                 >
                   Sign In
                 </button>

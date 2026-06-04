@@ -123,7 +123,7 @@ export default function HomePage() {
               </div>
               <div>
                 <p className="text-xs font-bold uppercase tracking-widest text-[#cc3f31] mb-0.5">Product Hunt</p>
-                <h3 className="text-xl font-bold text-gray-900 dark:text-white leading-tight">
+                <h3 className="text-xl font-bold text-foreground leading-tight">
                   Support VeroLente AI on Product Hunt
                 </h3>
                 <p className="text-sm text-muted-foreground mt-0.5">

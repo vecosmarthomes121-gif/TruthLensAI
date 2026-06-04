@@ -1,6 +1,6 @@
 {
   "manifest_version": 3,
-  "name": "TruthLens AI – Instant Fact Checker",
+  "name": "VeroLente AI – Instant Fact Checker",
   "version": "2.0.0",
   "description": "AI-powered fact-checking on every page. Right-click text, images or links to verify instantly. Truth scores, sources, and forensic analysis without leaving the site.",
   "permissions": [
@@ -27,7 +27,7 @@
       "48": "icons/icon-48.png",
       "128": "icons/icon-128.png"
     },
-    "default_title": "TruthLens AI – Verify Content"
+    "default_title": "VeroLente AI – Verify Content"
   },
   "background": {
     "service_worker": "background.js"

@@ -179,7 +179,7 @@ export default function TeamDetailPage() {
       case 'owner': return <Shield className="h-4 w-4 text-purple-600" />;
       case 'admin': return <Settings className="h-4 w-4 text-blue-600" />;
       case 'editor': return <Edit3 className="h-4 w-4 text-green-600" />;
-      case 'viewer': return <Eye className="h-4 w-4 text-gray-600" />;
+      case 'viewer': return <Eye className="h-4 w-4 text-gray-500 dark:text-gray-400" />;
     }
   };
 
@@ -193,7 +193,7 @@ export default function TeamDetailPage() {
       case 'pending':
         return 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/20 dark:text-yellow-400';
       default:
-        return 'bg-gray-100 text-gray-700 dark:bg-gray-900/20 dark:text-gray-400';
+        return 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300';
     }
   };
 
@@ -424,7 +424,7 @@ export default function TeamDetailPage() {
             {/* Add Member Modal */}
             {showAddMember && (
               <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-                <div className="bg-white dark:bg-gray-800 rounded-xl p-6 max-w-md w-full shadow-2xl">
+                <div className="bg-white dark:bg-gray-900 rounded-xl p-6 max-w-md w-full shadow-2xl">
                   <h3 className="text-xl font-bold mb-4">Add Team Member</h3>
                   <form onSubmit={handleAddMember}>
                     <div className="mb-4">

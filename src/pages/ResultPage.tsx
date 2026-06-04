@@ -23,32 +23,32 @@ function VerdictBadge({ verdict }: { verdict: string }) {
   const map: Record<string, { label: string; cls: string; icon: React.ReactNode }> = {
     AUTHENTIC: {
       label: 'AUTHENTIC',
-      cls: 'bg-green-100 text-green-800 border-green-300',
+      cls: 'bg-green-100 dark:bg-green-900/40 text-green-800 dark:text-green-200 border-green-300 dark:border-green-700',
       icon: <ShieldCheck className="h-4 w-4" />,
     },
     'AI-GENERATED': {
       label: 'AI GENERATED',
-      cls: 'bg-orange-100 text-orange-800 border-orange-300',
+      cls: 'bg-orange-100 dark:bg-orange-900/40 text-orange-800 dark:text-orange-200 border-orange-300 dark:border-orange-700',
       icon: <Zap className="h-4 w-4" />,
     },
     DEEPFAKE: {
       label: 'DEEPFAKE DETECTED',
-      cls: 'bg-red-100 text-red-800 border-red-300',
+      cls: 'bg-red-100 dark:bg-red-900/40 text-red-800 dark:text-red-200 border-red-300 dark:border-red-700',
       icon: <AlertOctagon className="h-4 w-4" />,
     },
     MANIPULATED: {
       label: 'MANIPULATED',
-      cls: 'bg-red-100 text-red-800 border-red-300',
+      cls: 'bg-red-100 dark:bg-red-900/40 text-red-800 dark:text-red-200 border-red-300 dark:border-red-700',
       icon: <XCircle className="h-4 w-4" />,
     },
     MISINFORMATION: {
       label: 'MISINFORMATION',
-      cls: 'bg-red-100 text-red-800 border-red-300',
+      cls: 'bg-red-100 dark:bg-red-900/40 text-red-800 dark:text-red-200 border-red-300 dark:border-red-700',
       icon: <AlertOctagon className="h-4 w-4" />,
     },
     UNCERTAIN: {
       label: 'UNCERTAIN',
-      cls: 'bg-yellow-100 text-yellow-800 border-yellow-300',
+      cls: 'bg-yellow-100 dark:bg-yellow-900/40 text-yellow-800 dark:text-yellow-200 border-yellow-300 dark:border-yellow-700',
       icon: <AlertTriangle className="h-4 w-4" />,
     },
   };
@@ -69,10 +69,10 @@ function VerdictBadge({ verdict }: { verdict: string }) {
 // ── Risk level badge ─────────────────────────────────────────────────────────
 function RiskBadge({ risk, label }: { risk: string; label: string }) {
   const colorMap: Record<string, string> = {
-    HIGH: 'bg-red-100 text-red-700 border-red-200',
-    MEDIUM: 'bg-orange-100 text-orange-700 border-orange-200',
-    LOW: 'bg-yellow-100 text-yellow-700 border-yellow-200',
-    NONE: 'bg-green-100 text-green-700 border-green-200',
+    HIGH: 'bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-300 border-red-200 dark:border-red-700',
+    MEDIUM: 'bg-orange-100 dark:bg-orange-900/40 text-orange-700 dark:text-orange-300 border-orange-200 dark:border-orange-700',
+    LOW: 'bg-yellow-100 dark:bg-yellow-900/40 text-yellow-700 dark:text-yellow-300 border-yellow-200 dark:border-yellow-700',
+    NONE: 'bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-300 border-green-200 dark:border-green-700',
   };
   return (
     <div className="flex items-center justify-between py-2 border-b last:border-0">
@@ -97,7 +97,7 @@ function ConfidenceBar({ value, label, color = 'bg-blue-600' }: { value: number;
         <span className="text-sm text-muted-foreground">{label}</span>
         <span className="text-sm font-bold">{value}%</span>
       </div>
-      <div className="h-2.5 bg-gray-100 rounded-full overflow-hidden">
+      <div className="h-2.5 bg-muted rounded-full overflow-hidden">
         <div
           className={cn('h-full rounded-full transition-all', color)}
           style={{ width: `${value}%` }}
@@ -250,20 +250,20 @@ export default function ResultPage() {
                     <Share2 className="h-4 w-4" /> Share
                   </button>
                   {showShareMenu && (
-                    <div className="absolute top-full left-0 mt-2 w-48 bg-white dark:bg-gray-800 border rounded-lg shadow-lg p-2 z-50">
-                      <button onClick={shareToWhatsApp} className="w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded flex items-center gap-2 text-sm">
+                    <div className="absolute top-full left-0 mt-2 w-48 bg-background border rounded-lg shadow-lg p-2 z-50">
+                      <button onClick={shareToWhatsApp} className="w-full text-left px-4 py-2 hover:bg-accent rounded flex items-center gap-2 text-sm text-foreground">
                         <svg className="h-4 w-4" fill="#25D366" viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/></svg>
                         WhatsApp
                       </button>
-                      <button onClick={shareToFacebook} className="w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded flex items-center gap-2 text-sm">
+                      <button onClick={shareToFacebook} className="w-full text-left px-4 py-2 hover:bg-accent rounded flex items-center gap-2 text-sm text-foreground">
                         <svg className="h-4 w-4" fill="#1877F2" viewBox="0 0 24 24"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>
                         Facebook
                       </button>
-                      <button onClick={shareToTwitter} className="w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded flex items-center gap-2 text-sm">
+                      <button onClick={shareToTwitter} className="w-full text-left px-4 py-2 hover:bg-accent rounded flex items-center gap-2 text-sm text-foreground">
                         <svg className="h-4 w-4" fill="#1DA1F2" viewBox="0 0 24 24"><path d="M23.953 4.57a10 10 0 01-2.825.775 4.958 4.958 0 002.163-2.723c-.951.555-2.005.959-3.127 1.184a4.92 4.92 0 00-8.384 4.482C7.69 8.095 4.067 6.13 1.64 3.162a4.822 4.822 0 00-.666 2.475c0 1.71.87 3.213 2.188 4.096a4.904 4.904 0 01-2.228-.616v.06a4.923 4.923 0 003.946 4.827 4.996 4.996 0 01-2.212.085 4.936 4.936 0 004.604 3.417 9.867 9.867 0 01-6.102 2.105c-.39 0-.779-.023-1.17-.067a13.995 13.995 0 007.557 2.209c9.053 0 13.998-7.496 13.998-13.985 0-.21 0-.42-.015-.63A9.935 9.935 0 0024 4.59z"/></svg>
                         Twitter / X
                       </button>
-                      <button onClick={copyLink} className="w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded flex items-center gap-2 text-sm">
+                      <button onClick={copyLink} className="w-full text-left px-4 py-2 hover:bg-accent rounded flex items-center gap-2 text-sm text-foreground">
                         <LinkIcon className="h-4 w-4" /> Copy Link
                       </button>
                     </div>
@@ -362,9 +362,9 @@ export default function ResultPage() {
                       </span>
                       <span className={cn(
                         'inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold border',
-                        ia.detectionConfidence === 'HIGH' ? 'bg-blue-100 text-blue-700 border-blue-200' :
-                        ia.detectionConfidence === 'MEDIUM' ? 'bg-purple-100 text-purple-700 border-purple-200' :
-                        'bg-gray-100 text-gray-600 border-gray-200'
+                        ia.detectionConfidence === 'HIGH' ? 'bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-700' :
+                        ia.detectionConfidence === 'MEDIUM' ? 'bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-300 border-purple-200 dark:border-purple-700' :
+                        'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 border-gray-200 dark:border-gray-700'
                       )}>
                         <Activity className="h-3 w-3" />
                         {ia.detectionConfidence || 'LOW'} CONFIDENCE
@@ -377,7 +377,7 @@ export default function ResultPage() {
                       {/* BitMind */}
                       <div className={cn(
                         'inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold border',
-                        ia.bitmind?.status === 'unavailable' ? 'bg-gray-50 text-gray-400 border-gray-200' :
+                        ia.bitmind?.status === 'unavailable' ? 'bg-muted text-muted-foreground border-border' :
                         ia.bitmind?.isFake ? 'bg-red-50 text-red-700 border-red-200' : 'bg-green-50 text-green-700 border-green-200'
                       )}>
                         <Server className="h-3 w-3" />
@@ -386,7 +386,7 @@ export default function ResultPage() {
                       {/* SightEngine */}
                       <div className={cn(
                         'inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold border',
-                        ia.sightengine?.status === 'unavailable' ? 'bg-gray-50 text-gray-400 border-gray-200' :
+                        ia.sightengine?.status === 'unavailable' ? 'bg-muted text-muted-foreground border-border' :
                         (ia.sightengine?.deepfakeScore >= 70 || ia.sightengine?.aiGeneratedScore >= 70) ? 'bg-red-50 text-red-700 border-red-200' : 'bg-green-50 text-green-700 border-green-200'
                       )}>
                         <Radio className="h-3 w-3" />
@@ -395,7 +395,7 @@ export default function ResultPage() {
                       {/* Reality Defender */}
                       <div className={cn(
                         'inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold border',
-                        ia.realitydefender?.status === 'unavailable' ? 'bg-gray-50 text-gray-400 border-gray-200' :
+                        ia.realitydefender?.status === 'unavailable' ? 'bg-muted text-muted-foreground border-border' :
                         ia.realitydefender?.result === 'FAKE' ? 'bg-red-50 text-red-700 border-red-200' :
                         ia.realitydefender?.result === 'REAL' ? 'bg-green-50 text-green-700 border-green-200' : 'bg-yellow-50 text-yellow-700 border-yellow-200'
                       )}>
@@ -486,10 +486,10 @@ export default function ResultPage() {
                     {ia.signalLog.map((signal: string, i: number) => (
                       <div key={i} className={cn(
                         'flex items-start gap-2.5 px-3 py-2 rounded-lg text-sm font-mono',
-                        signal.includes('FAKE') || signal.includes('detected') || signal.includes('DETECTED') ? 'bg-red-50 text-red-800' :
-                        signal.includes('UNAVAILABLE') || signal.includes('N/A') ? 'bg-gray-50 text-gray-500' :
-                        signal.includes('authentic') || signal.includes('REAL') ? 'bg-green-50 text-green-800' :
-                        'bg-blue-50 text-blue-800'
+                        signal.includes('FAKE') || signal.includes('detected') || signal.includes('DETECTED') ? 'bg-red-50 dark:bg-red-950/40 text-red-800 dark:text-red-300' :
+                        signal.includes('UNAVAILABLE') || signal.includes('N/A') ? 'bg-muted text-muted-foreground' :
+                        signal.includes('authentic') || signal.includes('REAL') ? 'bg-green-50 dark:bg-green-950/40 text-green-800 dark:text-green-300' :
+                        'bg-blue-50 dark:bg-blue-950/40 text-blue-800 dark:text-blue-300'
                       )}>
                         <span className="flex-shrink-0 mt-0.5">{'›'}</span>
                         <span>{signal}</span>
@@ -683,7 +683,7 @@ export default function ResultPage() {
         {result.contentAnalysis && !ia && !va && (
           <div className="mb-8">
             <h2 className="text-xl font-bold mb-4">Content Analysis</h2>
-            <div className="bg-gradient-to-br from-purple-50 to-blue-50 border border-purple-200 rounded-xl p-6">
+            <div className="bg-gradient-to-br from-purple-50 dark:from-purple-950/30 to-blue-50 dark:to-blue-950/20 border border-purple-200 dark:border-purple-800 rounded-xl p-6">
               <div className="flex items-start gap-3 mb-4">
                 {result.contentAnalysis.contentType === 'article' && <FileText className="h-5 w-5 text-purple-600 flex-shrink-0 mt-0.5" />}
                 {result.contentAnalysis.contentType === 'image' && <ImageIcon className="h-5 w-5 text-purple-600 flex-shrink-0 mt-0.5" />}
@@ -704,11 +704,11 @@ export default function ResultPage() {
               {result.contentAnalysis.extractedMedia && result.contentAnalysis.extractedMedia.length > 0 && (
                 <div className="mt-4 grid grid-cols-2 md:grid-cols-3 gap-3">
                   {result.contentAnalysis.extractedMedia.map((media: any, idx: number) => (
-                    <div key={idx} className="relative rounded-lg overflow-hidden bg-white border border-purple-200">
+                    <div key={idx} className="relative rounded-lg overflow-hidden bg-card border border-purple-200 dark:border-purple-800">
                       {media.type === 'image' ? (
                         <img src={media.url} alt={media.caption || 'Extracted media'} className="w-full h-32 object-cover" onError={(e) => (e.currentTarget.style.display = 'none')} />
                       ) : (
-                        <div className="w-full h-32 bg-gray-100 flex items-center justify-center">
+                        <div className="w-full h-32 bg-muted flex items-center justify-center">
                           <VideoIcon className="h-8 w-8 text-gray-400" />
                         </div>
                       )}
