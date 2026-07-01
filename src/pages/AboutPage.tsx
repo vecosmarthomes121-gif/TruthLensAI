@@ -52,10 +52,10 @@ const howItWorksSteps = [
 ];
 
 const inputTypes = [
-  { icon: FileText, label: 'Text Claims', desc: 'Headlines, quotes, political statements', color: 'text-blue-600 bg-blue-50' },
-  { icon: LinkIcon, label: 'URLs', desc: 'Full news articles and blog posts', color: 'text-indigo-600 bg-indigo-50' },
-  { icon: ImageIcon, label: 'Images', desc: 'Deepfake & AI-generation detection', color: 'text-purple-600 bg-purple-50' },
-  { icon: VideoIcon, label: 'Videos', desc: 'YouTube, TikTok & uploaded clips', color: 'text-pink-600 bg-pink-50' },
+  { icon: FileText, label: 'Text Claims', desc: 'Headlines, quotes, political statements', color: 'text-blue-600 bg-blue-50 dark:bg-blue-950/40' },
+  { icon: LinkIcon, label: 'URLs', desc: 'Full news articles and blog posts', color: 'text-indigo-600 bg-indigo-50 dark:bg-indigo-950/40' },
+  { icon: ImageIcon, label: 'Images', desc: 'Deepfake & AI-generation detection', color: 'text-purple-600 bg-purple-50 dark:bg-purple-950/40' },
+  { icon: VideoIcon, label: 'Videos', desc: 'YouTube, TikTok & uploaded clips', color: 'text-pink-600 bg-pink-50 dark:bg-pink-950/40' },
 ];
 
 const trustSignals = [

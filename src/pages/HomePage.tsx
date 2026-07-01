@@ -48,7 +48,7 @@ export default function HomePage() {
   return (
     <div className="flex flex-col">
       {/* Hero Section */}
-      <section className="relative overflow-hidden bg-gradient-to-b from-blue-50 to-white py-20 lg:py-32">
+      <section className="relative overflow-hidden bg-gradient-to-b from-blue-50 to-white dark:from-gray-900 dark:to-gray-900 py-20 lg:py-32">
         <div className="container">
           <div className="grid lg:grid-cols-2 gap-12 items-center">
             <div>
@@ -72,13 +72,13 @@ export default function HomePage() {
                 <Shield className="h-4 w-4" />
                 AI-Powered Truth Engine
               </div>
-              <h1 className="text-4xl lg:text-5xl font-bold mb-6 leading-tight">
+              <h1 className="text-4xl lg:text-5xl font-bold mb-6 leading-tight text-gray-900 dark:text-white">
                 Verify News, Videos & Claims{' '}
                 <span className="bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
                   Instantly with AI
                 </span>
               </h1>
-              <p className="text-lg text-muted-foreground mb-8 leading-relaxed">
+              <p className="text-lg text-gray-600 dark:text-gray-300 mb-8 leading-relaxed">
                 The world's most trusted fact-checking platform. Submit any headline, link, image, or video and get instant verification backed by global news sources and AI analysis.
               </p>
               <div className="flex flex-col sm:flex-row gap-4">
@@ -207,7 +207,7 @@ export default function HomePage() {
       </section>
 
       {/* How It Works */}
-      <section className="py-20 bg-muted/30">
+      <section className="py-20 bg-muted/30 dark:bg-gray-900/50">
         <div className="container">
           <div className="text-center mb-16">
             <h2 className="text-3xl lg:text-4xl font-bold mb-4">

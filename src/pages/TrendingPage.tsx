@@ -120,14 +120,14 @@ export default function TrendingPage() {
           </div>
         ) : (
           <div className="text-center py-16 bg-muted/30 rounded-xl">
-            <div className="h-20 w-20 rounded-2xl bg-gradient-to-br from-blue-100 to-purple-100 flex items-center justify-center mx-auto mb-5">
+            <div className="h-20 w-20 rounded-2xl bg-gradient-to-br from-blue-100 dark:from-blue-900/50 to-purple-100 dark:to-purple-900/50 flex items-center justify-center mx-auto mb-5">
               <TrendingUp className="h-10 w-10 text-blue-600" />
             </div>
             <h3 className="text-xl font-semibold mb-2">No Trending Topics Yet</h3>
             <p className="text-muted-foreground mb-2 max-w-sm mx-auto">
               Trending topics appear when 2 or more signed-in users verify the same subject.
             </p>
-            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-blue-100 text-blue-700 text-xs font-semibold mb-6">
+            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 text-xs font-semibold mb-6">
               <Users className="h-3.5 w-3.5" />
               Only authenticated verifications count toward trending
             </div>

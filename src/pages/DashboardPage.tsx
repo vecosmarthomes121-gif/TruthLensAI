@@ -168,8 +168,8 @@ export default function DashboardPage() {
                   className={cn(
                     "flex items-center gap-2 px-4 py-2 rounded-lg border transition-colors",
                     notificationsEnabled
-                      ? "bg-blue-50 border-blue-500 text-blue-700 dark:bg-blue-950/20"
-                      : "hover:bg-gray-100 dark:hover:bg-gray-800"
+                      ? "bg-blue-50 dark:bg-blue-950/30 border-blue-500 text-blue-700 dark:text-blue-300"
+                      : "hover:bg-gray-100 dark:hover:bg-gray-800 text-foreground"
                   )}
                 >
                   {notificationsEnabled ? (
@@ -350,7 +350,7 @@ export default function DashboardPage() {
                         {topic.count} verification{topic.count !== 1 ? 's' : ''}
                       </span>
                     </div>
-                    <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
+                    <div className="h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
                       <div 
                         className="h-full bg-gradient-to-r from-blue-600 to-purple-600"
                         style={{ width: `${(topic.count / stats.totalVerifications) * 100}%` }}
@@ -378,7 +378,7 @@ export default function DashboardPage() {
                 className={cn(
                   "border rounded-lg p-4 text-center transition-all",
                   badge.earned 
-                    ? "bg-gradient-to-br from-blue-50 to-purple-50 border-blue-200"
+                    ? "bg-gradient-to-br from-blue-50 to-purple-50 dark:from-blue-950/30 dark:to-purple-950/30 border-blue-200 dark:border-blue-800"
                     : "bg-muted/30 border-muted opacity-50"
                 )}
               >

@@ -121,38 +121,38 @@ const endpoints = [
     path: '/v1/verify',
     desc: 'Submit a claim, URL, image URL, or video URL for AI verification',
     icon: Zap,
-    color: 'text-green-600 bg-green-50',
+    color: 'text-green-600 bg-green-50 dark:bg-green-950/40',
   },
   {
     method: 'GET',
     path: '/v1/verify/:id',
     desc: 'Retrieve a previous verification result by ID',
     icon: FileText,
-    color: 'text-blue-600 bg-blue-50',
+    color: 'text-blue-600 bg-blue-50 dark:bg-blue-950/40',
   },
   {
     method: 'GET',
     path: '/v1/trending',
     desc: 'Fetch currently trending claims verified by multiple users',
     icon: BarChart3,
-    color: 'text-purple-600 bg-purple-50',
+    color: 'text-purple-600 bg-purple-50 dark:bg-purple-950/40',
   },
   {
     method: 'GET',
     path: '/v1/history',
     desc: 'List all verifications made by your API key (paginated)',
     icon: Globe,
-    color: 'text-indigo-600 bg-indigo-50',
+    color: 'text-indigo-600 bg-indigo-50 dark:bg-indigo-950/40',
   },
 ];
 
 // ── Input types ───────────────────────────────────────────────────────────────
 
 const inputTypes = [
-  { icon: FileText, label: 'text', desc: 'Claims, headlines, and political statements', color: 'text-blue-600 bg-blue-50' },
-  { icon: LinkIcon, label: 'url', desc: 'Full articles — VeroLente AI extracts and analyses content', color: 'text-indigo-600 bg-indigo-50' },
-  { icon: ImageIcon, label: 'image', desc: 'Deepfake, AI-generation, and manipulation detection', color: 'text-purple-600 bg-purple-50' },
-  { icon: VideoIcon, label: 'video', desc: 'YouTube, TikTok, and uploaded video misinformation analysis', color: 'text-pink-600 bg-pink-50' },
+  { icon: FileText, label: 'text', desc: 'Claims, headlines, and political statements', color: 'text-blue-600 bg-blue-50 dark:bg-blue-950/40' },
+  { icon: LinkIcon, label: 'url', desc: 'Full articles — VeroLente AI extracts and analyses content', color: 'text-indigo-600 bg-indigo-50 dark:bg-indigo-950/40' },
+  { icon: ImageIcon, label: 'image', desc: 'Deepfake, AI-generation, and manipulation detection', color: 'text-purple-600 bg-purple-50 dark:bg-purple-950/40' },
+  { icon: VideoIcon, label: 'video', desc: 'YouTube, TikTok, and uploaded video misinformation analysis', color: 'text-pink-600 bg-pink-50 dark:bg-pink-950/40' },
 ];
 
 // ── CopyButton ────────────────────────────────────────────────────────────────
@@ -387,7 +387,7 @@ export default function ApiAccessPage() {
                   <div className="flex items-center gap-3 mb-1 flex-wrap">
                     <span className={cn(
                       'px-2.5 py-0.5 rounded-full text-xs font-black tracking-wide',
-                      method === 'POST' ? 'bg-green-100 text-green-700' : 'bg-blue-100 text-blue-700'
+                      method === 'POST' ? 'bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-300' : 'bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300'
                     )}>
                       {method}
                     </span>
@@ -516,19 +516,19 @@ export default function ApiAccessPage() {
                 icon: Lock,
                 title: 'Privacy by Design',
                 desc: 'API requests are never logged for training purposes. Verification data is tied to your key, not shared across accounts.',
-                color: 'text-green-600 bg-green-50',
+                color: 'text-green-600 bg-green-50 dark:bg-green-950/40',
               },
               {
                 icon: Shield,
                 title: 'Enterprise-Ready Security',
                 desc: 'TLS 1.3 in transit, AES-256 at rest, key rotation support, and GDPR-compliant data handling.',
-                color: 'text-blue-600 bg-blue-50',
+                color: 'text-blue-600 bg-blue-50 dark:bg-blue-950/40',
               },
               {
                 icon: Cpu,
                 title: 'Built on Frontier AI',
                 desc: 'Powered by Google Gemini 3 and live Serper web search — always current, always sourced.',
-                color: 'text-purple-600 bg-purple-50',
+                color: 'text-purple-600 bg-purple-50 dark:bg-purple-950/40',
               },
             ].map(({ icon: Icon, title, desc, color }) => (
               <div key={title} className="bg-card border rounded-xl p-6">

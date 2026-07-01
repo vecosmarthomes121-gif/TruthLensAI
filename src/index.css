@@ -57,4 +57,10 @@
     @apply bg-background text-foreground;
     font-feature-settings: "rlig" 1, "calt" 1;
   }
+  /* Mobile bottom nav clearance */
+  @media (max-width: 767px) {
+    #root {
+      padding-bottom: 5rem;
+    }
+  }
 }
