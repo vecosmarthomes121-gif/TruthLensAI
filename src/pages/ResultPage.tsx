@@ -11,7 +11,7 @@ import {
   Image as ImageIcon, Video as VideoIcon, Download, Loader2,
   AlertTriangle, CheckCircle, XCircle, ShieldAlert, ShieldCheck,
   AlertOctagon, Zap, Mic, Film, Eye, Search, Server, Activity,
-  BarChart2, Radio,
+  BarChart2, Radio, Play, Pause, Volume2,
 } from 'lucide-react';
 import { formatDate } from '@/lib/utils';
 import { toast } from 'sonner';
@@ -125,6 +125,82 @@ function AnomalyList({ items, icon: Icon, label }: { items: string[]; icon: any;
   );
 }
 
+// ── Audio player ────────────────────────────────────────────────────────────
+function AudioPlayer({ src }: { src: string }) {
+  const audioRef = useRef<HTMLAudioElement>(null);
+  const [playing, setPlaying] = useState(false);
+  const [progress, setProgress] = useState(0);
+  const [duration, setDuration] = useState(0);
+  const [volume, setVolume] = useState(1);
+
+  const toggle = () => {
+    const a = audioRef.current;
+    if (!a) return;
+    if (playing) { a.pause(); setPlaying(false); }
+    else { a.play(); setPlaying(true); }
+  };
+
+  const fmt = (s: number) => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, '0')}`;
+
+  return (
+    <div className="bg-gradient-to-br from-violet-50 to-purple-50 dark:from-violet-950/30 dark:to-purple-950/20 border border-violet-200 dark:border-violet-800 rounded-xl p-5">
+      <audio
+        ref={audioRef}
+        src={src}
+        onTimeUpdate={() => { const a = audioRef.current; if (a) setProgress(a.currentTime); }}
+        onLoadedMetadata={() => { const a = audioRef.current; if (a) setDuration(a.duration); }}
+        onEnded={() => setPlaying(false)}
+      />
+      <div className="flex items-center gap-4">
+        <button
+          onClick={toggle}
+          className="h-12 w-12 rounded-full bg-gradient-to-br from-violet-600 to-purple-600 flex items-center justify-center text-white shadow-lg hover:shadow-xl transition-all flex-shrink-0"
+        >
+          {playing ? <Pause className="h-5 w-5" /> : <Play className="h-5 w-5 ml-0.5" />}
+        </button>
+        <div className="flex-1">
+          <div className="flex justify-between text-xs text-muted-foreground mb-1.5">
+            <span>{fmt(progress)}</span>
+            <span>{fmt(duration)}</span>
+          </div>
+          {/* Waveform-style progress bar */}
+          <div
+            className="relative h-8 flex items-center gap-[2px] cursor-pointer"
+            onClick={(e) => {
+              const rect = e.currentTarget.getBoundingClientRect();
+              const pct = (e.clientX - rect.left) / rect.width;
+              const a = audioRef.current;
+              if (a) { a.currentTime = pct * duration; setProgress(a.currentTime); }
+            }}
+          >
+            {Array.from({ length: 48 }).map((_, i) => {
+              const barHeight = 20 + Math.sin(i * 0.8) * 10 + Math.sin(i * 0.3) * 8;
+              const filled = duration > 0 && (i / 48) <= (progress / duration);
+              return (
+                <div
+                  key={i}
+                  className={`flex-1 rounded-full transition-colors ${
+                    filled ? 'bg-violet-600' : 'bg-violet-200 dark:bg-violet-800'
+                  }`}
+                  style={{ height: `${barHeight}%` }}
+                />
+              );
+            })}
+          </div>
+        </div>
+        <div className="flex items-center gap-1.5 flex-shrink-0">
+          <Volume2 className="h-4 w-4 text-muted-foreground" />
+          <input
+            type="range" min="0" max="1" step="0.05" value={volume}
+            onChange={(e) => { const v = parseFloat(e.target.value); setVolume(v); if (audioRef.current) audioRef.current.volume = v; }}
+            className="w-16 accent-violet-600"
+          />
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function ResultPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -192,7 +268,8 @@ export default function ResultPage() {
 
   const ia = result.contentAnalysis?.imageAnalysis;
   const va = result.contentAnalysis?.videoAnalysis;
-  const isMediaVerification = result.inputType === 'image' || result.inputType === 'video';
+  const aa = (result.contentAnalysis as any)?.audioAnalysis;
+  const isAudioFile = result.inputType === 'audio' || (result.mediaUrl && /\.(mp3|wav|m4a|ogg|flac|aac)($|\?)/i.test(result.mediaUrl));
 
   // Determine threat color for media verification header
   const getThreatLevel = () => {
@@ -227,6 +304,16 @@ export default function ResultPage() {
         <button onClick={() => navigate(-1)} className="flex items-center gap-2 text-muted-foreground hover:text-foreground mb-6 transition-colors">
           <ArrowLeft className="h-4 w-4" /> Back
         </button>
+
+        {/* Audio Player — shown whenever mediaUrl is an audio file */}
+        {isAudioFile && result.mediaUrl && (
+          <div className="mb-6">
+            <h2 className="text-base font-bold mb-3 flex items-center gap-2">
+              <Mic className="h-4 w-4 text-violet-600" /> Audio File
+            </h2>
+            <AudioPlayer src={result.mediaUrl} />
+          </div>
+        )}
 
         {/* Header */}
         <div className={cn('bg-gradient-to-br rounded-2xl p-8 lg:p-12 mb-8', threatColorMap[threatLevel])}>
@@ -679,8 +766,190 @@ export default function ResultPage() {
           </div>
         )}
 
+        {/* ── AUDIO DEEPFAKE ANALYSIS ───────────────────────────── */}
+        {aa && (
+          <div className="mb-8">
+            {/* Alert banner */}
+            {(aa.suspicionScore >= 50 || aa.isVoiceClone || aa.isSyntheticSpeech) && (
+              <div className={cn(
+                'flex items-start gap-3 p-4 rounded-xl mb-5 border',
+                aa.suspicionScore >= 75
+                  ? 'bg-red-50 border-red-200 text-red-800 dark:bg-red-950/20 dark:border-red-800 dark:text-red-200'
+                  : aa.suspicionScore >= 50
+                  ? 'bg-orange-50 border-orange-200 text-orange-800 dark:bg-orange-950/20 dark:border-orange-800 dark:text-orange-200'
+                  : 'bg-yellow-50 border-yellow-200 text-yellow-800 dark:bg-yellow-950/20 dark:border-yellow-800 dark:text-yellow-200'
+              )}>
+                <ShieldAlert className="h-6 w-6 flex-shrink-0 mt-0.5" />
+                <div>
+                  <p className="font-bold text-base mb-0.5">
+                    {aa.suspicionScore >= 75
+                      ? 'Fake Audio — This recording is very likely AI-generated or cloned'
+                      : aa.suspicionScore >= 50
+                      ? 'Suspicious Audio — Signs of AI generation or voice cloning found'
+                      : 'Unclear — Not enough evidence to confirm either way'}
+                  </p>
+                  <p className="text-sm opacity-90">Double-check the source before sharing or acting on this audio.</p>
+                </div>
+              </div>
+            )}
+
+            <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
+              <Mic className="h-5 w-5 text-violet-600" />
+              Audio Deepfake Report
+            </h2>
+
+            <div className="grid md:grid-cols-2 gap-5">
+
+              {/* Suspicion score + Reality Defender */}
+              <div className="bg-card border rounded-xl p-6 md:col-span-2">
+                <div className="flex flex-col md:flex-row md:items-center gap-6">
+                  {/* Score ring */}
+                  <div className="flex-shrink-0 flex flex-col items-center">
+                    <svg width="120" height="120" viewBox="0 0 120 120">
+                      <circle cx="60" cy="60" r="50" fill="none" stroke="#e5e7eb" strokeWidth="12"/>
+                      <circle cx="60" cy="60" r="50" fill="none"
+                        stroke={aa.suspicionScore >= 75 ? '#ef4444' : aa.suspicionScore >= 50 ? '#f97316' : aa.suspicionScore >= 25 ? '#eab308' : '#22c55e'}
+                        strokeWidth="12"
+                        strokeDasharray="314"
+                        strokeDashoffset={314 - (314 * (aa.suspicionScore || 0)) / 100}
+                        strokeLinecap="round"
+                        transform="rotate(-90 60 60)"
+                      />
+                      <text x="60" y="55" textAnchor="middle" fill="currentColor" fontSize="24" fontWeight="800" fontFamily="sans-serif">{aa.suspicionScore ?? 0}</text>
+                      <text x="60" y="72" textAnchor="middle" fill="#6b7280" fontSize="10" fontFamily="sans-serif">/ 100</text>
+                    </svg>
+                    <span className="text-xs text-muted-foreground mt-1 font-semibold">Suspicion Score</span>
+                  </div>
+
+                  <div className="flex-1">
+                    <div className="flex items-center gap-3 mb-3 flex-wrap">
+                      <span className={cn(
+                        'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-sm font-bold',
+                        aa.suspicionScore >= 75 ? 'bg-red-100 dark:bg-red-900/40 text-red-800 dark:text-red-200 border-red-300 dark:border-red-700' :
+                        aa.suspicionScore >= 50 ? 'bg-orange-100 dark:bg-orange-900/40 text-orange-800 dark:text-orange-200 border-orange-300 dark:border-orange-700' :
+                        aa.suspicionScore >= 25 ? 'bg-yellow-100 dark:bg-yellow-900/40 text-yellow-800 dark:text-yellow-200 border-yellow-300 dark:border-yellow-700' :
+                        'bg-green-100 dark:bg-green-900/40 text-green-800 dark:text-green-200 border-green-300 dark:border-green-700'
+                      )}>
+                        {aa.suspicionScore >= 50 ? <AlertOctagon className="h-4 w-4" /> : aa.suspicionScore >= 25 ? <AlertTriangle className="h-4 w-4" /> : <ShieldCheck className="h-4 w-4" />}
+                        {aa.suspicionVerdict || 'ANALYZING'}
+                      </span>
+                      {/* Reality Defender badge */}
+                      {aa.realityDefender && (
+                        <div className={cn(
+                          'inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold border',
+                          aa.realityDefender.status === 'unavailable' ? 'bg-muted text-muted-foreground border-border' :
+                          aa.realityDefender.result === 'FAKE' ? 'bg-red-50 dark:bg-red-950/40 text-red-700 dark:text-red-300 border-red-200 dark:border-red-800' :
+                          aa.realityDefender.result === 'REAL' ? 'bg-green-50 dark:bg-green-950/40 text-green-700 dark:text-green-300 border-green-200 dark:border-green-800' :
+                          'bg-yellow-50 dark:bg-yellow-950/40 text-yellow-700 dark:text-yellow-300 border-yellow-200 dark:border-yellow-800'
+                        )}>
+                          <BarChart2 className="h-3 w-3" />
+                          Reality Defender: {aa.realityDefender.status === 'unavailable' ? 'N/A' : `${aa.realityDefender.result} (${aa.realityDefender.confidence ?? 0}%)`}
+                        </div>
+                      )}
+                    </div>
+                    <p className="text-sm text-muted-foreground leading-relaxed">{aa.overallVerdict === 'VOICE_CLONE' ? 'This audio matches patterns of voice cloning technology — the voice may not be the real person.' : aa.overallVerdict === 'SYNTHETIC_SPEECH' ? 'This audio appears to be computer-generated speech, not a real human recording.' : aa.overallVerdict === 'AI_GENERATED' ? 'This audio was likely made using AI audio generation tools.' : aa.overallVerdict === 'AUTHENTIC' ? 'No signs of AI generation or voice cloning found.' : 'Results are unclear — the audio could not be confidently classified.'}</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Confidence bars */}
+              <div className="bg-card border rounded-xl p-6">
+                <h3 className="font-bold mb-4 text-base">Detection Confidence</h3>
+                <div className="space-y-4">
+                  <ConfidenceBar
+                    value={aa.voiceCloneConfidence || 0}
+                    label="Voice Clone"
+                    color={aa.voiceCloneConfidence >= 70 ? 'bg-red-500' : aa.voiceCloneConfidence >= 40 ? 'bg-orange-500' : 'bg-green-500'}
+                  />
+                  <ConfidenceBar
+                    value={aa.syntheticSpeechConfidence || 0}
+                    label="Synthetic Speech"
+                    color={aa.syntheticSpeechConfidence >= 70 ? 'bg-red-500' : aa.syntheticSpeechConfidence >= 40 ? 'bg-orange-500' : 'bg-green-500'}
+                  />
+                  <ConfidenceBar
+                    value={aa.aiGenerationConfidence || 0}
+                    label="AI Generated Audio"
+                    color={aa.aiGenerationConfidence >= 70 ? 'bg-red-500' : aa.aiGenerationConfidence >= 40 ? 'bg-orange-500' : 'bg-green-500'}
+                  />
+                  <ConfidenceBar
+                    value={aa.authenticityScore || 0}
+                    label="Authenticity"
+                    color={aa.authenticityScore >= 70 ? 'bg-green-500' : aa.authenticityScore >= 40 ? 'bg-orange-500' : 'bg-red-500'}
+                  />
+                </div>
+              </div>
+
+              {/* Forensic checks */}
+              <div className="bg-card border rounded-xl p-6">
+                <h3 className="font-bold mb-4 text-base">What We Checked</h3>
+                <div className="space-y-0 divide-y">
+                  <div className="flex items-center justify-between py-2.5">
+                    <div className="flex items-center gap-2 text-sm"><Mic className="h-4 w-4 text-muted-foreground" /> Voice Clone</div>
+                    {aa.isVoiceClone ? <span className="text-xs font-bold text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/40 px-2 py-1 rounded-full">DETECTED</span> : <span className="text-xs font-bold text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-950/40 px-2 py-1 rounded-full">CLEAR</span>}
+                  </div>
+                  <div className="flex items-center justify-between py-2.5">
+                    <div className="flex items-center gap-2 text-sm"><Zap className="h-4 w-4 text-muted-foreground" /> Synthetic Speech</div>
+                    {aa.isSyntheticSpeech ? <span className="text-xs font-bold text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/40 px-2 py-1 rounded-full">DETECTED</span> : <span className="text-xs font-bold text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-950/40 px-2 py-1 rounded-full">CLEAR</span>}
+                  </div>
+                  <div className="flex items-center justify-between py-2.5">
+                    <div className="flex items-center gap-2 text-sm"><Activity className="h-4 w-4 text-muted-foreground" /> AI Generated</div>
+                    {aa.isAiGenerated ? <span className="text-xs font-bold text-orange-600 dark:text-orange-400 bg-orange-50 dark:bg-orange-950/40 px-2 py-1 rounded-full">DETECTED</span> : <span className="text-xs font-bold text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-950/40 px-2 py-1 rounded-full">CLEAR</span>}
+                  </div>
+                  <div className="flex items-center justify-between py-2.5">
+                    <div className="flex items-center gap-2 text-sm"><Radio className="h-4 w-4 text-muted-foreground" /> Audio Type</div>
+                    <span className="text-xs font-bold text-muted-foreground bg-muted px-2 py-1 rounded-full">{aa.audioType || 'UNKNOWN'}</span>
+                  </div>
+                </div>
+
+                {aa.detectedAnomalies && aa.detectedAnomalies.length > 0 && (
+                  <div className="mt-4 pt-4 border-t">
+                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">Anomalies Found</p>
+                    <ul className="space-y-1">
+                      {aa.detectedAnomalies.map((a: string, i: number) => (
+                        <li key={i} className="flex items-start gap-2 text-sm">
+                          <AlertTriangle className="h-3.5 w-3.5 text-orange-500 flex-shrink-0 mt-0.5" />
+                          <span className="text-muted-foreground">{a}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </div>
+
+              {/* Signal log */}
+              {aa.signalLog && aa.signalLog.length > 0 && (
+                <div className="bg-card border rounded-xl p-6 md:col-span-2">
+                  <h3 className="font-bold mb-3 text-base flex items-center gap-2">
+                    <Activity className="h-4 w-4 text-violet-600" /> Detection Log
+                  </h3>
+                  <div className="space-y-2">
+                    {aa.signalLog.map((signal: string, i: number) => (
+                      <div key={i} className={cn(
+                        'flex items-start gap-2.5 px-3 py-2 rounded-lg text-sm font-mono',
+                        signal.includes('FAKE') || signal.includes('fake') ? 'bg-red-50 dark:bg-red-950/40 text-red-800 dark:text-red-300' :
+                        signal.includes('UNAVAILABLE') ? 'bg-muted text-muted-foreground' :
+                        signal.includes('REAL') || signal.includes('Authentic') ? 'bg-green-50 dark:bg-green-950/40 text-green-800 dark:text-green-300' :
+                        'bg-violet-50 dark:bg-violet-950/40 text-violet-800 dark:text-violet-300'
+                      )}>
+                        <span className="flex-shrink-0 mt-0.5">{'›'}</span>
+                        <span>{signal}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Summary */}
+              <div className="bg-card border rounded-xl p-6 md:col-span-2">
+                <h3 className="font-bold mb-3 text-base">Summary</h3>
+                <p className="text-sm text-muted-foreground leading-relaxed">{result.contentAnalysis?.summary || result.explanation}</p>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* ── URL Content Analysis ─────────────────────────────────── */}
-        {result.contentAnalysis && !ia && !va && (
+        {result.contentAnalysis && !ia && !va && !aa && (
           <div className="mb-8">
             <h2 className="text-xl font-bold mb-4">Content Analysis</h2>
             <div className="bg-gradient-to-br from-purple-50 dark:from-purple-950/30 to-blue-50 dark:to-blue-950/20 border border-purple-200 dark:border-purple-800 rounded-xl p-6">

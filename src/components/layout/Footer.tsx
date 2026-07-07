@@ -1,4 +1,4 @@
-import { Twitter, Facebook, Linkedin, Github } from 'lucide-react';
+import { Twitter, Linkedin, Github } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 export default function Footer() {
@@ -22,17 +22,22 @@ export default function Footer() {
               The world's most trusted AI-powered verification engine. Verify news, images, videos, and claims instantly with real-time analysis from global sources.
             </p>
             <div className="flex gap-3">
-              <a href="#" className="h-9 w-9 rounded-lg border flex items-center justify-center hover:bg-accent transition-colors">
+              <a href="https://twitter.com/verolente_ai" target="_blank" rel="noopener noreferrer" className="h-9 w-9 rounded-lg border flex items-center justify-center hover:bg-accent transition-colors" title="VeroLente AI on X/Twitter">
                 <Twitter className="h-4 w-4" />
               </a>
-              <a href="#" className="h-9 w-9 rounded-lg border flex items-center justify-center hover:bg-accent transition-colors">
-                <Facebook className="h-4 w-4" />
-              </a>
-              <a href="#" className="h-9 w-9 rounded-lg border flex items-center justify-center hover:bg-accent transition-colors">
+              <a href="https://linkedin.com/company/verolente-ai" target="_blank" rel="noopener noreferrer" className="h-9 w-9 rounded-lg border flex items-center justify-center hover:bg-accent transition-colors" title="VeroLente AI on LinkedIn">
                 <Linkedin className="h-4 w-4" />
               </a>
-              <a href="#" className="h-9 w-9 rounded-lg border flex items-center justify-center hover:bg-accent transition-colors">
+              <a href="https://github.com/verolente-ai" target="_blank" rel="noopener noreferrer" className="h-9 w-9 rounded-lg border flex items-center justify-center hover:bg-accent transition-colors" title="VeroLente AI on GitHub">
                 <Github className="h-4 w-4" />
+              </a>
+              {/* Product Hunt */}
+              <a href="https://www.producthunt.com/@victor_o_brien/" target="_blank" rel="noopener noreferrer" className="h-9 w-9 rounded-lg border flex items-center justify-center hover:bg-accent transition-colors" title="VeroLente AI on Product Hunt">
+                <svg width="16" height="16" viewBox="0 0 240 240" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <circle cx="120" cy="120" r="120" fill="#FF6154"/>
+                  <path d="M136.001 120H104V88H136.001C144.837 88 152 95.163 152 104C152 112.837 144.837 120 136.001 120Z" fill="white"/>
+                  <path d="M104 120H136.001C144.837 120 152 127.163 152 136C152 144.837 144.837 152 136.001 152H104V120Z" fill="white" fillOpacity="0.6"/>
+                </svg>
               </a>
             </div>
           </div>

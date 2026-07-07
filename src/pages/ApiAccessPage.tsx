@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
@@ -60,32 +61,35 @@ const responseExample = `{
 
 const plans = [
   {
-    name: 'Free',
+    name: 'Starter',
     badge: null,
-    price: '$0',
+    price: '$49',
     period: '/mo',
-    desc: 'For individuals and small projects',
+    desc: 'Great for developers and solo users',
+    credits: '1,000 credits / month',
     features: [
-      '100 verifications / month',
-      'Text and URL verification',
-      'Standard response time (~3s)',
-      'JSON API responses',
+      '1,000 credits included per month',
+      'Text & URL scans — 1 credit each',
+      'Image & audio — 2–4 credits each',
+      'Standard response (~3s)',
+      'JSON API access',
       'Community support',
     ],
     cta: 'Get Early Access',
     highlighted: false,
   },
   {
-    name: 'Pro',
+    name: 'Business',
     badge: 'Most Popular',
-    price: '$49',
+    price: '$199',
     period: '/mo',
-    desc: 'For newsrooms and growing teams',
+    desc: 'Built for agencies and small newsrooms',
+    credits: '5,000 credits / month',
     features: [
-      '5,000 verifications / month',
-      'All input types (text, URL, image, video)',
-      'Deepfake & AI generation detection',
-      'Priority response time (~1s)',
+      '5,000 credits included per month',
+      'All media types — text, URL, image, video, audio',
+      'Deepfake & voice-clone detection',
+      'Fast response (~1s)',
       'Webhook callbacks',
       'Team API key management',
       'Email support',
@@ -98,19 +102,28 @@ const plans = [
     badge: null,
     price: 'Custom',
     period: '',
-    desc: 'For large media organisations',
+    desc: 'For large media platforms and organisations',
+    credits: '20,000+ credits / month',
     features: [
-      'Unlimited verifications',
+      '20,000+ credits per month',
       'Dedicated API infrastructure',
-      'Custom rate limits',
-      'SLA guarantee (99.9% uptime)',
-      'SSO & audit logs',
+      'Custom rate limits & SLA (99.9% uptime)',
+      'SSO & full audit logs',
       'On-premise deployment option',
       'Dedicated account manager',
     ],
     cta: 'Contact Sales',
     highlighted: false,
   },
+];
+
+// ── Credit costs ─────────────────────────────────────────────────────────────
+
+const creditCosts = [
+  { type: 'Text / News Article', credits: '1 credit', cost: '$0.01', icon: FileText, color: 'text-blue-600 bg-blue-50 dark:bg-blue-950/40' },
+  { type: 'Image / Audio File', credits: '2–4 credits', cost: '$0.02–$0.04', icon: ImageIcon, color: 'text-purple-600 bg-purple-50 dark:bg-purple-950/40' },
+  { type: 'URL Article Scan', credits: '1 credit', cost: '$0.01', icon: LinkIcon, color: 'text-indigo-600 bg-indigo-50 dark:bg-indigo-950/40' },
+  { type: 'Video (per minute)', credits: '10+ credits', cost: '$0.10+/min', icon: VideoIcon, color: 'text-pink-600 bg-pink-50 dark:bg-pink-950/40' },
 ];
 
 // ── Endpoint table ────────────────────────────────────────────────────────────
@@ -460,7 +473,88 @@ export default function ApiAccessPage() {
           </div>
 
           <div className="grid md:grid-cols-3 gap-6 max-w-5xl mx-auto items-start">
-            {plans.map(({ name, badge, price, period, desc, features, cta, highlighted }) => (
+            {plans.map(({ name, badge, price, period, desc, credits, features, cta, highlighted }) => (
+              <div
+                key={name}
+                className={cn(
+                  'rounded-2xl border p-7 flex flex-col',
+                  highlighted
+                    ? 'bg-gradient-to-br from-blue-600 to-purple-700 text-white border-transparent shadow-xl shadow-blue-600/20 scale-[1.02]'
+                    : 'bg-card'
+                )}
+              >
+                {badge && (
+                  <span className="inline-flex items-center px-2.5 py-1 rounded-full bg-white/20 text-white text-xs font-bold mb-4 self-start">
+                    {badge}
+                  </span>
+                )}
+                <p className={cn('text-sm font-semibold mb-1', highlighted ? 'text-white/70' : 'text-muted-foreground')}>{name}</p>
+                <div className="flex items-end gap-1 mb-1">
+                  <span className="text-4xl font-black">{price}</span>
+                  <span className={cn('text-sm mb-1', highlighted ? 'text-white/70' : 'text-muted-foreground')}>{period}</span>
+                </div>
+                <p className={cn('text-xs font-bold mb-1 px-2 py-1 rounded-lg w-fit', highlighted ? 'bg-white/15 text-white' : 'bg-primary/10 text-primary')}>{credits}</p>
+                <p className={cn('text-sm mb-6 mt-1', highlighted ? 'text-white/70' : 'text-muted-foreground')}>{desc}</p>
+                <ul className="space-y-2.5 flex-1 mb-7">
+                  {features.map(feat => (
+                    <li key={feat} className="flex items-start gap-2 text-sm">
+                      <CheckCircle className={cn('h-4 w-4 flex-shrink-0 mt-0.5', highlighted ? 'text-green-300' : 'text-green-600')} />
+                      <span className={highlighted ? 'text-white/90' : ''}>{feat}</span>
+                    </li>
+                  ))}
+                </ul>
+                <a href="#early-access" className={cn(
+                  'w-full py-3 rounded-xl font-bold text-sm text-center transition-all',
+                  highlighted
+                    ? 'bg-white text-blue-700 hover:shadow-xl'
+                    : 'bg-gradient-to-r from-blue-600 to-purple-600 text-white hover:shadow-lg'
+                )}>
+                  {cta}
+                </a>
+              </div>
+            ))}
+          </div>
+
+          {/* Credit cost breakdown */}
+          <div className="max-w-4xl mx-auto mt-12">
+            <h3 className="text-xl font-bold text-center mb-2">How Credits Work</h3>
+            <p className="text-center text-muted-foreground text-sm mb-6">Each scan uses a different number of credits depending on how complex it is to analyse</p>
+            <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+              {creditCosts.map(({ type, credits, cost, icon: Icon, color }) => (
+                <div key={type} className="bg-card border rounded-xl p-5 text-center">
+                  <div className={cn('h-10 w-10 rounded-xl flex items-center justify-center mx-auto mb-3', color)}>
+                    <Icon className="h-5 w-5" />
+                  </div>
+                  <p className="font-semibold text-sm mb-1">{type}</p>
+                  <p className="text-lg font-black text-primary">{credits}</p>
+                  <p className="text-xs text-muted-foreground">{cost} per scan</p>
+                </div>
+              ))}
+            </div>
+            {/* Top-up packs */}
+            <div className="bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-950/20 dark:to-purple-950/20 border border-blue-200 dark:border-blue-800 rounded-xl p-6">
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div>
+                  <p className="font-bold mb-1">Need more credits? Top up anytime</p>
+                  <p className="text-sm text-muted-foreground">Buy extra credit packs when you run out before your monthly reset</p>
+                </div>
+                <div className="flex gap-3 flex-shrink-0">
+                  <div className="bg-card border rounded-lg px-4 py-2 text-center">
+                    <p className="font-black text-lg">500</p>
+                    <p className="text-xs text-muted-foreground">credits</p>
+                    <p className="text-sm font-bold text-primary">$10</p>
+                  </div>
+                  <div className="bg-card border rounded-lg px-4 py-2 text-center">
+                    <p className="font-black text-lg">5,000</p>
+                    <p className="text-xs text-muted-foreground">credits</p>
+                    <p className="text-sm font-bold text-primary">$80</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          {/* This block below was a duplicate and caused the parsing error */}
+          {/* {plans.map(({ name, badge, price, period, desc, credits, features, cta, highlighted }) => (
               <div
                 key={name}
                 className={cn(
@@ -498,8 +592,8 @@ export default function ApiAccessPage() {
                   {cta}
                 </a>
               </div>
-            ))}
-          </div>
+            ))} */}
+          {/* </div> */}
 
           <p className="text-center text-sm text-muted-foreground mt-8">
             All plans include access to the web interface and browser extension at no extra cost.

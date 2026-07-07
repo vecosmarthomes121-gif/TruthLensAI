@@ -523,43 +523,21 @@ Deno.serve(async (req) => {
 
       const imageData = await fetchAsBase64(imageUrl);
 
-      const imagePrompt = `You are an expert forensic media analyst and deepfake detection specialist. Today is ${currentDate}.
+      const imagePrompt = `You are a forensic media analyst checking if this image is fake, AI-generated, or edited.
+Today is ${currentDate}.
 
-PRIMARY MISSION: Detect if this image is a DEEPFAKE, AI-GENERATED, or MANIPULATED.
+Look for these red flags:
+1. DEEPFAKE SIGNS: Face-swap seams, skin tone mismatches, blurry hair edges, weird ear shapes, eyes pointing different ways, skin that looks tiled or repeated
+2. AI-GENERATED SIGNS: Extra or missing fingers, warped/unreadable text, background repeating, plastic-looking skin, impossible lighting and shadows
+3. ELA (compression check): If compression looks the same everywhere → AI-generated. Patchy high-error face on low-error background → spliced/composited. Natural variation → real photo
+4. EDITS: Clone-stamp patterns, cut-and-paste artifacts, weird perspective
+5. CONTEXT: What does the image show? Any text visible?
 
-FORENSIC CHECKS — examine each carefully:
+Give a short name (max 8 words) for what you see.
 
-1. DEEPFAKE INDICATORS
-   - Face-swap artifacts: boundary seams around faces, mismatched skin tones, blurred hair edges
-   - Facial geometry: asymmetry anomalies, impossible bone structure, ear/nose distortion
-   - Eye reflections pointing in different directions (inconsistent light source)
-   - Skin texture repeating in a tiled pattern (AI tiling artifact)
-   - Hair edges that are too smooth or blend into background unnaturally
-   - Extreme ear asymmetry, teeth that are too uniform/white/symmetrical
-
-2. AI GENERATION TELLS (Stable Diffusion, DALL-E, Midjourney, GAN, Firefly, ComfyUI)
-   - Extra or missing fingers/limbs
-   - Warped or illegible text
-   - Unnatural background repetition or bleeding
-   - Overly smooth skin / plastic-looking texture
-   - Impossible lighting (multiple contradictory shadow directions)
-
-3. ELA INTERPRETATION
-   - UNIFORM error levels across face+background+edges → AI-generated
-   - PATCHY high-error on faces, low-error backgrounds → spliced/composited
-   - Natural varied compression → NORMAL (authentic)
-
-4. PHOTO MANIPULATION
-   - Clone-stamp regions, compositing artifacts, perspective inconsistencies
-
-5. CONTEXT
-   - What does this image show? Any visible text or identifiable subjects?
-
-Provide a short descriptive name (max 8 words) of what you see.
-
-Return ONLY valid JSON (no markdown):
+Return ONLY valid JSON (no markdown, no explanation text):
 {
-  "imageName": "<short descriptive name>",
+  "imageName": "<short name of what you see>",
   "overallVerdict": "<AUTHENTIC|AI-GENERATED|DEEPFAKE|MANIPULATED|UNCERTAIN>",
   "deepfakeDetected": <true|false>,
   "deepfakeConfidence": <0-100>,
@@ -567,16 +545,16 @@ Return ONLY valid JSON (no markdown):
   "isAiGenerated": <true|false>,
   "aiGenerationConfidence": <0-100>,
   "manipulationDetected": <true|false>,
-  "manipulationDetails": "<specific manipulation found or 'None detected'>",
+  "manipulationDetails": "<what was changed, or 'None found'>",
   "authenticityScore": <0-100>,
   "elaInterpretation": "<UNIFORM|PATCHY|NORMAL>",
-  "suspiciousElements": ["<specific forensic anomaly>"],
-  "facialAnomalies": ["<facial inconsistency, empty array if none>"],
-  "backgroundAnomalies": ["<background inconsistency, empty array if none>"],
-  "compressionAnomalies": ["<compression artifact, empty array if none>"],
+  "suspiciousElements": ["<specific thing that looks off>"],
+  "facialAnomalies": ["<facial issue found, or empty array>"],
+  "backgroundAnomalies": ["<background issue found, or empty array>"],
+  "compressionAnomalies": ["<compression issue found, or empty array>"],
   "hasFace": <true|false>,
-  "visibleText": "<any text visible in image, or empty string>",
-  "analysis": "<3-4 sentence forensic report: what the image shows, key findings, and final authenticity assessment>"
+  "visibleText": "<any text you can read in the image, or empty string>",
+  "analysis": "<2-3 plain sentences: what the image shows, main findings, and final verdict. Use simple everyday words.>"
 }`;
 
       const imageMessages = imageData
@@ -737,14 +715,13 @@ Return ONLY valid JSON (no markdown):
           { role: 'system', content: 'You are an expert audio forensics specialist detecting AI-generated audio, voice cloning, and synthetic speech. Respond with valid JSON only.' },
           {
             role: 'user',
-            content: `Today is ${currentDate}. Analyze this audio for signs of AI generation, voice cloning, or synthetic speech.
+            content: `Today is ${currentDate}. Analyze this audio for signs of AI generation, voice cloning, or fake speech.
 
 Audio URL: ${audioUrl}
 
-Assess based on the URL context, filename, and any known audio deepfake patterns:
-- Is this from a known audio generation platform?
-- Does the filename suggest AI generation?
-- Are there typical markers of voice cloning (extremely smooth prosody, unnatural breath patterns, robotic cadence)?
+Judge based on the URL, filename, and common AI audio patterns:
+- Does the filename or URL suggest it came from an AI voice tool?
+- Are typical voice clone signs present: unnaturally smooth pacing, robotic pauses, no breathing sounds?
 
 Return ONLY valid JSON:
 {
@@ -755,11 +732,11 @@ Return ONLY valid JSON:
   "syntheticSpeechConfidence": <0-100>,
   "isAiGenerated": <true|false>,
   "aiGenerationConfidence": <0-100>,
-  "detectedAnomalies": ["<anomaly or empty>"],
+  "detectedAnomalies": ["<issue found, or empty array>"],
   "authenticityScore": <0-100>,
   "overallVerdict": "<AUTHENTIC|VOICE_CLONE|SYNTHETIC_SPEECH|AI_GENERATED|UNCERTAIN>",
   "riskLevel": "<HIGH|MEDIUM|LOW|NONE>",
-  "summary": "<3-4 sentence forensic assessment of the audio>"
+  "summary": "<2-3 plain sentences explaining what was found and what it means. Use simple everyday words — no technical jargon.>"
 }`,
           },
         ], 0.15).catch(e => { console.error('AI audio analysis error:', e); return null; }),
@@ -909,39 +886,36 @@ Return ONLY valid JSON:
       const isTikTok = videoUrl.includes('tiktok.com');
       console.log('--- VIDEO DEEPFAKE DETECTION (no web search) ---', { isYouTube, isTikTok });
 
-      const videoPrompt = `You are a forensic video analyst and deepfake detection specialist. Today is ${currentDate}.
-
-The user submitted this video for DEEPFAKE DETECTION. Do NOT search the web — analyze based on the URL, platform context, and any observable signals.
+      const videoPrompt = `You are checking this video for deepfakes or misleading content. Today is ${currentDate}.
 
 Video URL: ${videoUrl}
-Platform: ${isYouTube ? 'YouTube' : isTikTok ? 'TikTok' : 'Direct upload'}
-User context: "${claim}"
+Platform: ${isYouTube ? 'YouTube' : isTikTok ? 'TikTok' : 'Uploaded file'}
+User note: "${claim}"
 
-DEEPFAKE RISK ASSESSMENT:
-- Is a known political figure, celebrity, or public person shown in an unlikely scenario?
-- Are there signs of face-swapping, voice cloning, or lip-sync inconsistencies?
-- Does the URL/title/context suggest synthetic or manipulated content?
-- Is the content designed to mislead viewers about a real event or person?
-- For full-synthesis videos (Sora/Runway/Kling): impossible motion, object permanence failures, temporal instability?
+Think about:
+- Does this show a famous person (politician, celebrity) doing something they likely never did?
+- Are there signs of face-swapping, voice cloning, or out-of-sync lip movement?
+- Does the title or URL suggest it was made to trick people?
+- For AI-generated video (Sora/Runway): Do objects appear/disappear, does motion look wrong, do things flicker unnaturally?
 
 Return ONLY valid JSON:
 {
-  "mainClaim": "<the primary verifiable claim made or implied by this video>",
-  "videoTitle": "<estimated or known title>",
+  "mainClaim": "<the main thing this video is claiming or showing>",
+  "videoTitle": "<estimated title or 'Unknown'>",
   "deepfakeRisk": "<HIGH|MEDIUM|LOW|NONE>",
   "deepfakeConfidence": <0-100>,
   "deepfakeDetected": <true|false>,
   "deepfakeType": "<face-swap|voice-clone|full-synthesis|frame-manipulation|none>",
-  "deepfakeIndicators": ["<specific indicator>"],
-  "facialAnomalies": ["<facial artifact or empty array>"],
-  "audioAnomalies": ["<audio/voice artifact or empty array>"],
-  "temporalAnomalies": ["<frame/motion artifact or empty array>"],
+  "deepfakeIndicators": ["<specific sign of fakery, or empty array>"],
+  "facialAnomalies": ["<face issue found, or empty array>"],
+  "audioAnomalies": ["<voice or sound issue found, or empty array>"],
+  "temporalAnomalies": ["<motion or frame issue found, or empty array>"],
   "isMisinformation": <true|false>,
-  "misinformationDetails": "<why this may be misinformation, or 'No misinformation detected'>",
+  "misinformationDetails": "<why this could be misleading, or 'No issues found'>",
   "voiceCloningRisk": "<HIGH|MEDIUM|LOW|NONE>",
   "authenticityScore": <0-100>,
   "overallVerdict": "<AUTHENTIC|DEEPFAKE|MANIPULATED|AI-GENERATED|UNCERTAIN>",
-  "summary": "<3-4 sentence deepfake/misinformation risk assessment>"
+  "summary": "<2-3 plain sentences summing up what this video is and whether it looks real or fake. Use simple words.>"
 }`;
 
       let videoAnalysis: any = {};
@@ -1192,43 +1166,41 @@ Return ONLY valid JSON:
       : '';
 
     console.log('--- AI VERIFICATION ---');
-    const verificationPrompt = `You are VeroLente AI, a professional fact-checking system. Today is ${currentDate} (year 2026).
+    const verificationPrompt = `You are VeroLente AI, a fact-checking tool. Today is ${currentDate} (2026).
 
-**Claim to verify:** "${analyzedClaim}"
-**Original input:** "${claim}"
-**Input type:** ${inputType}
+Claim to check: "${analyzedClaim}"
+Original input: "${claim}"
+Input type: ${inputType}
 ${contentContext}
 
-**REAL-TIME WEB SEARCH RESULTS:**
+Here are the latest web search results about this claim:
 ${searchContext || 'No search results found.'}
 
-Instructions:
-- Base analysis ONLY on search results above — not training data
-- Reference specific results (e.g. "According to [1]...")
-- Score 80–100: results clearly confirm
-- Score 60–79: mostly confirm with caveats
-- Score 40–59: results conflict
-- Score 20–39: mostly contradict
-- Score 0–19: no support or explicitly debunked
+Your job:
+- Use ONLY the search results above — not anything from your training
+- Say clearly whether the claim is true, mostly true, disputed, mostly false, or false
+- Reference specific results (e.g. “According to [1]...”)
+- Keep the explanation short and easy to read — write like you’re explaining it to a friend, not writing a report
+- Score guide: 80–100 = clearly confirmed | 60–79 = mostly confirmed | 40–59 = conflicting info | 20–39 = mostly denied | 0–19 = no support or debunked
 
 Return ONLY valid JSON:
 {
   "truthScore": <0-100>,
   "status": "<true|mostly-true|disputed|mostly-false|false>",
-  "explanation": "<2-3 sentence explanation referencing search results>",
+  "explanation": "<2-3 plain sentences. Say what the sources found and whether the claim holds up. Simple words only.>",
   "sources": [
     {
       "name": "<outlet name>",
       "url": "<exact URL from search results>",
       "credibilityScore": <0-100>,
       "publishedDate": "<YYYY-MM-DD>",
-      "excerpt": "<relevant snippet>",
+      "excerpt": "<short quote from the result>",
       "stance": "<supports|contradicts|neutral>",
       "imageUrl": null
     }
   ],
   "relatedClaims": [
-    { "claim": "<related claim>", "truthScore": <0-100>, "status": "<status>" }
+    { "claim": "<a related thing people are also checking>", "truthScore": <0-100>, "status": "<status>" }
   ]
 }`;
 
