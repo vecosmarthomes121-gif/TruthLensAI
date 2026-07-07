@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom';
 import { useEffect } from 'react';
 import { Toaster } from 'sonner';
 import Header from '@/components/layout/Header';
@@ -18,6 +18,15 @@ import ExtensionPage from '@/pages/ExtensionPage';
 import ApiAccessPage from '@/pages/ApiAccessPage';
 import AboutPage from '@/pages/AboutPage';
 import NotFoundPage from '@/pages/NotFoundPage';
+// Scroll restoration on route change
+function ScrollToTop() {
+  const { pathname } = useLocation();
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: 'instant' });
+  }, [pathname]);
+  return null;
+}
+
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/stores/authStore';
 import { mapSupabaseUser } from '@/lib/auth';
@@ -59,6 +68,7 @@ function App() {
 
   return (
     <BrowserRouter>
+      <ScrollToTop />
       <div className="flex flex-col min-h-screen">
         <Header />
         <main className="flex-1 pb-[80px] md:pb-0">

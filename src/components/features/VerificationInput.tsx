@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Search, Link as LinkIcon, Image, Video, Loader2, Upload, X } from 'lucide-react';
+import { Search, Link as LinkIcon, Image, Video, Mic, Loader2, Upload, X } from 'lucide-react';
 import { InputType } from '@/types';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/lib/supabase';
@@ -55,8 +55,8 @@ export default function VerificationInput({ onVerify, isLoading }: VerificationI
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (activeTab === 'image' || activeTab === 'video') {
-      // For image/video, use uploaded file URL or pasted URL
+    if (activeTab === 'image' || activeTab === 'video' || activeTab === 'audio') {
+      // For image/video/audio, use uploaded file URL or pasted URL
       const mediaUrl = uploadedFileUrl || input.trim();
       if (mediaUrl && !isLoading) {
         onVerify(mediaUrl, activeTab, mediaUrl);
@@ -74,6 +74,7 @@ export default function VerificationInput({ onVerify, isLoading }: VerificationI
     { id: 'url' as InputType, label: 'URL', icon: LinkIcon },
     { id: 'image' as InputType, label: 'Image', icon: Image },
     { id: 'video' as InputType, label: 'Video', icon: Video },
+    { id: 'audio' as InputType, label: 'Audio', icon: Mic },
   ];
 
   return (
@@ -228,11 +229,79 @@ export default function VerificationInput({ onVerify, isLoading }: VerificationI
               )}
             </div>
           )}
+          {activeTab === 'audio' && (
+            <div className="border-2 border-dashed rounded-lg p-8 text-center bg-muted/30">
+              {uploadedFile ? (
+                <div className="relative">
+                  <div className="flex items-center gap-3 bg-background border rounded-xl px-5 py-4 max-w-md mx-auto">
+                    <div className="h-12 w-12 rounded-full bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center flex-shrink-0">
+                      <Mic className="h-6 w-6 text-white" />
+                    </div>
+                    <div className="flex-1 min-w-0 text-left">
+                      <p className="font-semibold text-sm truncate">{uploadedFile.name}</p>
+                      <p className="text-xs text-muted-foreground">{(uploadedFile.size / 1024 / 1024).toFixed(2)} MB</p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={handleRemoveFile}
+                      className="p-2 bg-red-500 text-white rounded-full hover:bg-red-600 flex-shrink-0"
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
+                  </div>
+                  <audio src={uploadedFileUrl} controls className="mt-4 mx-auto w-full max-w-md" />
+                </div>
+              ) : (
+                <>
+                  <div className="h-16 w-16 rounded-2xl bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center mx-auto mb-4">
+                    <Mic className="h-8 w-8 text-white" />
+                  </div>
+                  <p className="font-semibold text-base mb-1">Audio Deepfake Detection</p>
+                  <p className="text-sm text-muted-foreground mb-1">Detects AI-generated voices, voice cloning &amp; synthetic speech</p>
+                  <p className="text-xs text-muted-foreground/70 mb-5">Powered by Reality Defender · Supports MP3, WAV, M4A, OGG, FLAC</p>
+                  <label className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-violet-600 to-purple-600 text-white rounded-lg cursor-pointer hover:shadow-lg transition-all">
+                    <Upload className="h-4 w-4" />
+                    {uploading ? 'Uploading...' : 'Choose Audio File'}
+                    <input
+                      type="file"
+                      accept="audio/*,.mp3,.wav,.m4a,.ogg,.flac,.aac"
+                      className="hidden"
+                      onChange={(e) => e.target.files?.[0] && handleFileUpload(e.target.files[0])}
+                      disabled={uploading || isLoading}
+                    />
+                  </label>
+                  <div className="relative my-4">
+                    <div className="absolute inset-0 flex items-center">
+                      <div className="w-full border-t border-gray-300 dark:border-gray-700"></div>
+                    </div>
+                    <div className="relative flex justify-center text-xs">
+                      <span className="bg-muted/30 px-2 text-muted-foreground">or paste audio URL</span>
+                    </div>
+                  </div>
+                  <input
+                    type="text"
+                    value={input}
+                    onChange={(e) => setInput(e.target.value)}
+                    placeholder="Paste a direct audio URL (.mp3, .wav, etc.)"
+                    className="w-full px-4 py-2 rounded-lg border bg-background focus:outline-none focus:ring-2 focus:ring-violet-600"
+                    disabled={isLoading}
+                  />
+                  <div className="mt-5 grid grid-cols-3 gap-3 max-w-sm mx-auto">
+                    {['Voice Clone Detection', 'Synthetic Speech', 'AI Audio Generation'].map(feat => (
+                      <div key={feat} className="text-xs text-center p-2 rounded-lg bg-violet-50 dark:bg-violet-950/30 text-violet-700 dark:text-violet-300 font-medium">
+                        {feat}
+                      </div>
+                    ))}
+                  </div>
+                </>
+              )}
+            </div>
+          )}
         </div>
 
         <button
           type="submit"
-          disabled={(activeTab === 'image' || activeTab === 'video' ? !uploadedFileUrl && !input.trim() : !input.trim()) || isLoading || uploading}
+          disabled={(activeTab === 'image' || activeTab === 'video' || activeTab === 'audio' ? !uploadedFileUrl && !input.trim() : !input.trim()) || isLoading || uploading}
           className="mt-4 w-full px-6 py-3 rounded-lg bg-gradient-to-r from-blue-600 to-purple-600 text-white font-semibold hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
         >
           {isLoading ? (

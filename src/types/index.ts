@@ -1,4 +1,4 @@
-export type InputType = 'text' | 'url' | 'image' | 'video';
+export type InputType = 'text' | 'url' | 'image' | 'video' | 'audio';
 
 export type VerificationStatus = 'true' | 'mostly-true' | 'disputed' | 'mostly-false' | 'false';
 

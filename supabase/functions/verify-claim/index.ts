@@ -4,7 +4,7 @@ import { corsHeaders } from '../_shared/cors.ts';
 
 interface VerifyRequest {
   claim: string;
-  inputType: 'text' | 'url' | 'image' | 'video';
+  inputType: 'text' | 'url' | 'image' | 'video' | 'audio';
   mediaUrl?: string;
 }
 
@@ -135,10 +135,6 @@ function parseJSON(content: string): any {
 }
 
 // ── Detection API: BitMind (with 5-key rotation) ─────────────────────────────
-// Correct endpoint: POST https://api.bitmind.ai/oracle/v1/34/detect-image
-// Auth: Authorization: Bearer <api_key>  +  x-bitmind-application: oracle-api
-// Body: JSON { "image": "<base64_data_uri or public_url>", "rich": false }
-// Response: { "isAI": bool, "confidence": 0-1 }
 async function callBitMind(
   imageBase64: string,
   mimeType: string,
@@ -147,8 +143,6 @@ async function callBitMind(
 ): Promise<{ isFake: boolean; confidence: number; status: 'ok' | 'unavailable' }> {
   if (keys.length === 0) return { isFake: false, confidence: 0, status: 'unavailable' };
 
-  // BitMind accepts either a base64 data URI (max 4MB) or a public URL
-  // Prefer base64 so it works for any image regardless of CORS restrictions
   const imagePayload = imageBase64
     ? `data:${mimeType};base64,${imageBase64}`
     : imageUrl;
@@ -179,7 +173,6 @@ async function callBitMind(
       const data = await res.json();
       console.log(`BitMind key ${i + 1} response:`, JSON.stringify(data).substring(0, 300));
 
-      // Response shape: { isAI: bool, confidence: 0-1 }
       const isFake = data.isAI ?? data.is_fake ?? data.fake ?? false;
       const rawConf = data.confidence ?? data.score ?? 0;
       const confidence = Math.round(rawConf * 100);
@@ -194,9 +187,6 @@ async function callBitMind(
 }
 
 // ── Detection API: SightEngine (with 5-key pair rotation) ───────────────────
-// URL mode:    GET  https://api.sightengine.com/1.0/check.json?url=...&models=deepfake,ai-generated&api_user=...&api_secret=...
-// Binary mode: POST https://api.sightengine.com/1.0/check.json with FormData (media=<blob>, models=, api_user=, api_secret=)
-// Response shape: { status: 'success', type: { deepfake: 0-1 }, ai_generated: { score: 0-1 } }
 async function callSightEngine(
   imageUrl: string,
   credentials: Array<{ user: string; secret: string }>,
@@ -211,7 +201,6 @@ async function callSightEngine(
       let res: Response;
 
       if (imageBuffer && imageBuffer.byteLength > 0) {
-        // Binary upload: POST with FormData — works for any image regardless of URL accessibility
         const formData = new FormData();
         const blob = new Blob([imageBuffer], { type: mimeType || 'image/jpeg' });
         formData.append('media', blob, `image.${(mimeType || 'image/jpeg').split('/')[1] || 'jpg'}`);
@@ -223,7 +212,6 @@ async function callSightEngine(
           body: formData,
         });
       } else {
-        // URL mode: GET with query params
         const params = new URLSearchParams({
           url: imageUrl,
           models: 'deepfake,ai-generated',
@@ -254,9 +242,6 @@ async function callSightEngine(
         continue;
       }
 
-      // Correct response fields:
-      //   deepfake score → data.type.deepfake  (0-1)
-      //   ai-generated score → data.ai_generated.score  (0-1)
       const deepfakeScore = Math.round((data.type?.deepfake ?? data.deepfake?.score ?? 0) * 100);
       const aiGeneratedScore = Math.round((data.ai_generated?.score ?? 0) * 100);
       console.log(`SightEngine scores: deepfake=${deepfakeScore}%, ai-generated=${aiGeneratedScore}%`);
@@ -270,70 +255,90 @@ async function callSightEngine(
   return { deepfakeScore: 0, aiGeneratedScore: 0, status: 'unavailable' };
 }
 
-// ── Detection API: Reality Defender ─────────────────────────────────────────
-async function callRealityDefender(imageUrl: string): Promise<{ result: 'FAKE' | 'REAL' | 'UNCERTAIN' | 'UNAVAILABLE'; confidence: number; status: 'ok' | 'unavailable' }> {
-  const apiKey = Deno.env.get('REALITY_DEFENDER_API_KEY');
-  if (!apiKey) return { result: 'UNAVAILABLE', confidence: 0, status: 'unavailable' };
+// ── Detection API: Reality Defender (with 5-key rotation) ───────────────────
+// Supports both image URLs and audio files via the upload-url endpoint.
+async function callRealityDefender(
+  mediaUrl: string,
+  keys?: string[]
+): Promise<{ result: 'FAKE' | 'REAL' | 'UNCERTAIN' | 'UNAVAILABLE'; confidence: number; requestId?: string; status: 'ok' | 'unavailable' }> {
+  const allKeys = (keys && keys.length > 0 ? keys : [
+    Deno.env.get('REALITY_DEFENDER_API_KEY'),
+  ]).filter(Boolean) as string[];
 
-  try {
-    const res = await fetch('https://api.realitydefender.com/api/files/upload-url', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiKey}`,
-      },
-      body: JSON.stringify({ url: imageUrl }),
-    });
+  if (allKeys.length === 0) return { result: 'UNAVAILABLE', confidence: 0, status: 'unavailable' };
 
-    if (!res.ok) {
-      const errText = await res.text();
-      console.warn('Reality Defender upload error:', res.status, errText.substring(0, 200));
-      return { result: 'UNAVAILABLE', confidence: 0, status: 'unavailable' };
-    }
+  for (let ki = 0; ki < allKeys.length; ki++) {
+    const apiKey = allKeys[ki];
+    console.log(`Reality Defender: trying key ${ki + 1}/${allKeys.length}`);
 
-    const uploadData = await res.json();
-    console.log('Reality Defender upload response:', JSON.stringify(uploadData).substring(0, 300));
+    try {
+      const res = await fetch('https://api.realitydefender.com/api/files/upload-url', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${apiKey}`,
+        },
+        body: JSON.stringify({ url: mediaUrl }),
+      });
 
-    const requestId = uploadData.request_id ?? uploadData.id ?? null;
-
-    if (!requestId) {
-      if (uploadData.result || uploadData.prediction) {
-        const raw = (uploadData.result ?? uploadData.prediction ?? 'UNCERTAIN').toUpperCase();
-        const rdResult = raw === 'FAKE' ? 'FAKE' : raw === 'REAL' ? 'REAL' : 'UNCERTAIN';
-        const confidence = Math.round((uploadData.confidence ?? uploadData.score ?? 0.5) * 100);
-        return { result: rdResult as any, confidence, status: 'ok' };
+      if (res.status === 429 || res.status === 403) {
+        console.warn(`Reality Defender key ${ki + 1} rate limited (${res.status}), trying next...`);
+        continue;
       }
-      return { result: 'UNCERTAIN', confidence: 0, status: 'unavailable' };
-    }
 
-    // Poll for result (max 3 attempts, 2s apart)
-    for (let attempt = 0; attempt < 3; attempt++) {
-      await new Promise(r => setTimeout(r, 2000));
-      try {
-        const pollRes = await fetch(`https://api.realitydefender.com/api/files/${requestId}`, {
-          headers: { 'Authorization': `Bearer ${apiKey}` },
-        });
-        if (pollRes.ok) {
-          const pollData = await pollRes.json();
-          console.log(`RD poll attempt ${attempt + 1}:`, JSON.stringify(pollData).substring(0, 200));
-          const status = pollData.status ?? pollData.state ?? '';
-          if (status === 'complete' || status === 'completed' || status === 'done' || pollData.result) {
-            const raw = (pollData.result ?? pollData.prediction ?? 'UNCERTAIN').toUpperCase();
-            const rdResult = raw === 'FAKE' ? 'FAKE' : raw === 'REAL' ? 'REAL' : 'UNCERTAIN';
-            const confidence = Math.round((pollData.confidence ?? pollData.score ?? 0.5) * 100);
-            return { result: rdResult as any, confidence, status: 'ok' };
-          }
+      if (!res.ok) {
+        const errText = await res.text();
+        console.warn(`Reality Defender key ${ki + 1} upload error:`, res.status, errText.substring(0, 200));
+        continue;
+      }
+
+      const uploadData = await res.json();
+      console.log(`Reality Defender key ${ki + 1} upload response:`, JSON.stringify(uploadData).substring(0, 300));
+
+      const requestId = uploadData.request_id ?? uploadData.id ?? null;
+
+      if (!requestId) {
+        if (uploadData.result || uploadData.prediction) {
+          const raw = (uploadData.result ?? uploadData.prediction ?? 'UNCERTAIN').toUpperCase();
+          const rdResult = raw === 'FAKE' ? 'FAKE' : raw === 'REAL' ? 'REAL' : 'UNCERTAIN';
+          const confidence = Math.round((uploadData.confidence ?? uploadData.score ?? 0.5) * 100);
+          return { result: rdResult as any, confidence, status: 'ok' };
         }
-      } catch (pollErr) {
-        console.error('RD poll error:', pollErr);
+        continue;
       }
-    }
 
-    return { result: 'UNCERTAIN', confidence: 0, status: 'unavailable' };
-  } catch (err) {
-    console.error('Reality Defender call error:', err);
-    return { result: 'UNAVAILABLE', confidence: 0, status: 'unavailable' };
+      // Poll for result (max 4 attempts, 2s apart)
+      for (let attempt = 0; attempt < 4; attempt++) {
+        await new Promise(r => setTimeout(r, 2000));
+        try {
+          const pollRes = await fetch(`https://api.realitydefender.com/api/files/${requestId}`, {
+            headers: { 'Authorization': `Bearer ${apiKey}` },
+          });
+          if (pollRes.ok) {
+            const pollData = await pollRes.json();
+            console.log(`RD key ${ki + 1} poll attempt ${attempt + 1}:`, JSON.stringify(pollData).substring(0, 200));
+            const pollStatus = pollData.status ?? pollData.state ?? '';
+            if (pollStatus === 'complete' || pollStatus === 'completed' || pollStatus === 'done' || pollData.result) {
+              const raw = (pollData.result ?? pollData.prediction ?? 'UNCERTAIN').toUpperCase();
+              const rdResult = raw === 'FAKE' ? 'FAKE' : raw === 'REAL' ? 'REAL' : 'UNCERTAIN';
+              const confidence = Math.round((pollData.confidence ?? pollData.score ?? 0.5) * 100);
+              return { result: rdResult as any, confidence, requestId, status: 'ok' };
+            }
+          }
+        } catch (pollErr) {
+          console.error(`RD key ${ki + 1} poll error:`, pollErr);
+        }
+      }
+
+      // Polling timed out — return uncertain but mark as responded
+      return { result: 'UNCERTAIN', confidence: 0, requestId, status: 'ok' };
+    } catch (err) {
+      console.error(`Reality Defender key ${ki + 1} call error:`, err);
+    }
   }
+
+  console.warn('All Reality Defender keys exhausted or failed');
+  return { result: 'UNAVAILABLE', confidence: 0, status: 'unavailable' };
 }
 
 // ── Suspicion score calculator ───────────────────────────────────────────────
@@ -346,7 +351,6 @@ function calculateSuspicionScore(params: {
   let score = 0;
   const signals: string[] = [];
 
-  // BITMIND scoring
   if (params.bitmind.status === 'ok') {
     if (params.bitmind.isFake && params.bitmind.confidence >= 80) {
       score += 35;
@@ -361,7 +365,6 @@ function calculateSuspicionScore(params: {
     signals.push('BitMind: UNAVAILABLE');
   }
 
-  // SIGHTENGINE scoring
   if (params.sightengine.status === 'ok') {
     if (params.sightengine.deepfakeScore >= 70 || params.sightengine.aiGeneratedScore >= 70) {
       score += 20;
@@ -373,7 +376,6 @@ function calculateSuspicionScore(params: {
     signals.push('SightEngine: UNAVAILABLE');
   }
 
-  // REALITY DEFENDER scoring
   if (params.realitydefender.status === 'ok') {
     if (params.realitydefender.result === 'FAKE' && params.realitydefender.confidence >= 75) {
       score += 20;
@@ -385,7 +387,6 @@ function calculateSuspicionScore(params: {
     signals.push('Reality Defender: UNAVAILABLE');
   }
 
-  // AI forensic analysis scoring
   const ai = params.aiAnalysis;
   if (ai) {
     if (ai.deepfakeDetected && ai.deepfakeConfidence >= 70) {
@@ -401,7 +402,6 @@ function calculateSuspicionScore(params: {
       signals.push(`AI Forensics: No manipulation detected (authenticity=${ai.authenticityScore ?? 0}%)`);
     }
 
-    // Facial anomalies
     const facialCount = (ai.facialAnomalies || []).length;
     if (facialCount > 0) {
       const faceScore = Math.min(facialCount * 3, 12);
@@ -410,7 +410,6 @@ function calculateSuspicionScore(params: {
     }
   }
 
-  // Cap at 100
   score = Math.min(score, 100);
 
   let verdict: string;
@@ -429,7 +428,6 @@ function calculateSuspicionScore(params: {
     recommendation = 'Do not trust this image. High probability of AI generation or deepfake.';
   }
 
-  // Active APIs used
   const activeApis = [
     params.bitmind.status === 'ok',
     params.sightengine.status === 'ok',
@@ -483,6 +481,17 @@ Deno.serve(async (req) => {
       Deno.env.get('BITMIND_API_KEY_5'),
     ].filter(Boolean) as string[];
 
+    // Reality Defender: collect all 5 keys (rotation for audio + image)
+    const realityDefenderKeys = [
+      Deno.env.get('REALITY_DEFENDER_API_KEY'),
+      Deno.env.get('REALITY_DEFENDER_API_KEY_2'),
+      Deno.env.get('REALITY_DEFENDER_API_KEY_3'),
+      Deno.env.get('REALITY_DEFENDER_API_KEY_4'),
+      Deno.env.get('REALITY_DEFENDER_API_KEY_5'),
+    ].filter(Boolean) as string[];
+
+    console.log(`BitMind keys available: ${bitmindKeys.length}, Reality Defender keys: ${realityDefenderKeys.length}`);
+
     // SightEngine: collect all 5 credential pairs (rotation)
     const sightengineCredentials = [
       { user: Deno.env.get('SIGHTENGINE_API_USER'), secret: Deno.env.get('SIGHTENGINE_API_SECRET') },
@@ -492,7 +501,7 @@ Deno.serve(async (req) => {
       { user: Deno.env.get('SIGHTENGINE_API_USER_5'), secret: Deno.env.get('SIGHTENGINE_API_SECRET_5') },
     ].filter(c => c.user && c.secret) as Array<{ user: string; secret: string }>;
 
-    console.log(`BitMind keys available: ${bitmindKeys.length}, SightEngine credentials: ${sightengineCredentials.length}`);
+    console.log(`SightEngine credentials: ${sightengineCredentials.length}`);
 
     if (!aiApiKey || !aiBaseUrl) throw new Error('OnSpace AI configuration missing');
 
@@ -512,7 +521,6 @@ Deno.serve(async (req) => {
       const imageUrl = mediaUrl || claim;
       console.log('--- IMAGE DEEPFAKE DETECTION (multi-engine, no web search) ---');
 
-      // Fetch image binary once, reuse for all APIs
       const imageData = await fetchAsBase64(imageUrl);
 
       const imagePrompt = `You are an expert forensic media analyst and deepfake detection specialist. Today is ${currentDate}.
@@ -586,7 +594,6 @@ Return ONLY valid JSON (no markdown):
             { role: 'user', content: `${imagePrompt}\n\nImage URL: ${imageUrl}\n(Image could not be fetched — analyze based on URL/filename context.)` },
           ];
 
-      // Run AI forensic analysis + 3 external detection APIs in parallel — NO web searches
       const [aiRaw, bitmindResult, sightengineResult, realityDefenderResult] = await Promise.all([
         callAI(aiApiKey, aiBaseUrl, imageMessages, 0.15).catch(e => { console.error('AI image analysis error:', e); return null; }),
         imageData
@@ -595,7 +602,7 @@ Return ONLY valid JSON (no markdown):
         imageData
           ? callSightEngine(imageUrl, sightengineCredentials, imageData.buffer, imageData.mimeType)
           : callSightEngine(imageUrl, sightengineCredentials),
-        callRealityDefender(imageUrl),
+        callRealityDefender(imageUrl, realityDefenderKeys),
       ]);
 
       let imageAnalysis: any = {};
@@ -677,7 +684,6 @@ Return ONLY valid JSON (no markdown):
       analyzedClaim = imageAnalysis.imageName || 'Image verification';
       console.log(`Image name: "${analyzedClaim}"`);
 
-      // ── Derive scores and save — skip all web search for images ──
       const { truthScore, status } = suspicionToTruthScore(forensicScore.score);
       const explanation = `${imageAnalysis.analysis || ''} Suspicion score: ${forensicScore.score}/100 — ${forensicScore.verdict}. ${forensicScore.recommendation}`;
 
@@ -713,6 +719,183 @@ Return ONLY valid JSON (no markdown):
 
       return new Response(
         JSON.stringify({ id: saved.id, truthScore, status, explanation, sources: [], relatedClaims: [], contentAnalysis }),
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // ════════════════════════════════════════════════════════════════
+    // MODE: AUDIO — voice clone / AI audio detection via Reality Defender
+    // ════════════════════════════════════════════════════════════════
+    if (inputType === 'audio') {
+      const audioUrl = mediaUrl || claim;
+      console.log('--- AUDIO DEEPFAKE DETECTION (Reality Defender, 5-key rotation) ---');
+
+      // Run Reality Defender + AI forensic analysis in parallel
+      const [rdResult, aiAudioRaw] = await Promise.all([
+        callRealityDefender(audioUrl, realityDefenderKeys),
+        callAI(aiApiKey, aiBaseUrl, [
+          { role: 'system', content: 'You are an expert audio forensics specialist detecting AI-generated audio, voice cloning, and synthetic speech. Respond with valid JSON only.' },
+          {
+            role: 'user',
+            content: `Today is ${currentDate}. Analyze this audio for signs of AI generation, voice cloning, or synthetic speech.
+
+Audio URL: ${audioUrl}
+
+Assess based on the URL context, filename, and any known audio deepfake patterns:
+- Is this from a known audio generation platform?
+- Does the filename suggest AI generation?
+- Are there typical markers of voice cloning (extremely smooth prosody, unnatural breath patterns, robotic cadence)?
+
+Return ONLY valid JSON:
+{
+  "audioType": "<VOICE|MUSIC|SOUND_EFFECT|UNKNOWN>",
+  "isVoiceClone": <true|false>,
+  "voiceCloneConfidence": <0-100>,
+  "isSyntheticSpeech": <true|false>,
+  "syntheticSpeechConfidence": <0-100>,
+  "isAiGenerated": <true|false>,
+  "aiGenerationConfidence": <0-100>,
+  "detectedAnomalies": ["<anomaly or empty>"],
+  "authenticityScore": <0-100>,
+  "overallVerdict": "<AUTHENTIC|VOICE_CLONE|SYNTHETIC_SPEECH|AI_GENERATED|UNCERTAIN>",
+  "riskLevel": "<HIGH|MEDIUM|LOW|NONE>",
+  "summary": "<3-4 sentence forensic assessment of the audio>"
+}`,
+          },
+        ], 0.15).catch(e => { console.error('AI audio analysis error:', e); return null; }),
+      ]);
+
+      let audioAnalysis: any = {};
+      if (aiAudioRaw) {
+        try {
+          audioAnalysis = parseJSON(aiAudioRaw);
+          console.log('AI audio analysis:', JSON.stringify(audioAnalysis).substring(0, 300));
+        } catch (e) {
+          console.error('Audio analysis parse error:', e);
+        }
+      }
+
+      if (!audioAnalysis.overallVerdict) {
+        audioAnalysis = {
+          audioType: 'UNKNOWN',
+          isVoiceClone: false,
+          voiceCloneConfidence: 0,
+          isSyntheticSpeech: false,
+          syntheticSpeechConfidence: 0,
+          isAiGenerated: false,
+          aiGenerationConfidence: 0,
+          detectedAnomalies: [],
+          authenticityScore: 50,
+          overallVerdict: 'UNCERTAIN',
+          riskLevel: 'NONE',
+          summary: 'Audio analysis incomplete — unable to fully assess authenticity.',
+        };
+      }
+
+      // Build suspicion score from Reality Defender + AI signals
+      let audioSuspicion = 0;
+      const audioSignals: string[] = [];
+
+      if (rdResult.status === 'ok') {
+        if (rdResult.result === 'FAKE' && rdResult.confidence >= 70) {
+          audioSuspicion += 50;
+          audioSignals.push(`Reality Defender: FAKE audio — ${rdResult.confidence}% confidence`);
+        } else if (rdResult.result === 'FAKE') {
+          audioSuspicion += 30;
+          audioSignals.push(`Reality Defender: Likely fake audio — ${rdResult.confidence}% confidence`);
+        } else if (rdResult.result === 'REAL') {
+          audioSignals.push(`Reality Defender: REAL audio — ${rdResult.confidence}% confidence`);
+        } else {
+          audioSignals.push(`Reality Defender: UNCERTAIN — ${rdResult.confidence}% confidence`);
+        }
+      } else {
+        audioSignals.push('Reality Defender: UNAVAILABLE');
+      }
+
+      const maxAiConf = Math.max(
+        audioAnalysis.voiceCloneConfidence || 0,
+        audioAnalysis.syntheticSpeechConfidence || 0,
+        audioAnalysis.aiGenerationConfidence || 0
+      );
+      if (maxAiConf >= 70) {
+        audioSuspicion += 30;
+        audioSignals.push(`AI Forensics: ${audioAnalysis.overallVerdict} — ${maxAiConf}% confidence`);
+      } else {
+        audioSignals.push(`AI Forensics: ${audioAnalysis.overallVerdict} (${maxAiConf}% confidence)`);
+      }
+
+      audioSuspicion = Math.min(audioSuspicion, 100);
+
+      const { truthScore: audioTruthScore, status: audioStatus } = suspicionToTruthScore(audioSuspicion);
+
+      let audioVerdict: string;
+      if (audioSuspicion <= 24) audioVerdict = 'LIKELY AUTHENTIC';
+      else if (audioSuspicion <= 49) audioVerdict = 'INCONCLUSIVE';
+      else if (audioSuspicion <= 74) audioVerdict = 'LIKELY AI-GENERATED OR CLONED';
+      else audioVerdict = 'HIGH CONFIDENCE FAKE AUDIO';
+
+      const audioExplanation = `${audioAnalysis.summary} Reality Defender verdict: ${rdResult.result} (${rdResult.confidence}% confidence). Suspicion score: ${audioSuspicion}/100 — ${audioVerdict}.`;
+
+      contentAnalysis = {
+        contentType: 'audio',
+        summary: audioAnalysis.summary || 'Audio deepfake analysis completed.',
+        audioAnalysis: {
+          audioType: audioAnalysis.audioType || 'UNKNOWN',
+          isVoiceClone: audioAnalysis.isVoiceClone || false,
+          voiceCloneConfidence: audioAnalysis.voiceCloneConfidence || 0,
+          isSyntheticSpeech: audioAnalysis.isSyntheticSpeech || false,
+          syntheticSpeechConfidence: audioAnalysis.syntheticSpeechConfidence || 0,
+          isAiGenerated: audioAnalysis.isAiGenerated || false,
+          aiGenerationConfidence: audioAnalysis.aiGenerationConfidence || 0,
+          detectedAnomalies: audioAnalysis.detectedAnomalies || [],
+          authenticityScore: audioAnalysis.authenticityScore || 50,
+          overallVerdict: audioAnalysis.overallVerdict || 'UNCERTAIN',
+          riskLevel: audioAnalysis.riskLevel || 'NONE',
+          realityDefender: {
+            status: rdResult.status,
+            result: rdResult.result,
+            confidence: rdResult.confidence,
+          },
+          suspicionScore: audioSuspicion,
+          suspicionVerdict: audioVerdict,
+          signalLog: audioSignals,
+        },
+      };
+
+      analyzedClaim = `Audio file: ${audioUrl.split('/').pop()?.split('?')[0] || 'uploaded audio'}`;
+
+      const authHeader = req.headers.get('Authorization');
+      let userId: string | null = null;
+      if (authHeader) {
+        const token = authHeader.replace('Bearer ', '');
+        const anonClient = createClient(Deno.env.get('SUPABASE_URL') ?? '', Deno.env.get('SUPABASE_ANON_KEY') ?? '');
+        const { data: { user } } = await anonClient.auth.getUser(token);
+        userId = user?.id ?? null;
+      }
+
+      const supabaseAdmin = createClient(Deno.env.get('SUPABASE_URL') ?? '', Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '');
+      const { data: saved, error: saveError } = await supabaseAdmin
+        .from('verifications')
+        .insert({
+          user_id: userId,
+          claim: analyzedClaim,
+          input_type: inputType,
+          truth_score: audioTruthScore,
+          status: audioStatus,
+          explanation: audioExplanation,
+          sources: [],
+          related_claims: [],
+          media_url: mediaUrl || null,
+        })
+        .select()
+        .single();
+
+      if (saveError) throw new Error(`Failed to save verification: ${saveError.message}`);
+      console.log('Saved audio verification:', saved.id);
+      console.log('=== verify-claim complete (audio) ===');
+
+      return new Response(
+        JSON.stringify({ id: saved.id, truthScore: audioTruthScore, status: audioStatus, explanation: audioExplanation, sources: [], relatedClaims: [], contentAnalysis }),
         { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
@@ -761,7 +944,6 @@ Return ONLY valid JSON:
   "summary": "<3-4 sentence deepfake/misinformation risk assessment>"
 }`;
 
-      // For uploaded videos, attempt to pass binary to AI
       let videoAnalysis: any = {};
       const isUpload = !isYouTube && !isTikTok;
 
@@ -815,7 +997,6 @@ Return ONLY valid JSON:
         }
       }
 
-      // Derive truth score from deepfake confidence for video
       const deepfakeConf = videoAnalysis.deepfakeConfidence || 0;
       const videoSuspicion = Math.min(deepfakeConf + (videoAnalysis.deepfakeRisk === 'HIGH' ? 20 : videoAnalysis.deepfakeRisk === 'MEDIUM' ? 10 : 0), 100);
       const { truthScore: videoTruthScore, status: videoStatus } = suspicionToTruthScore(videoSuspicion);
