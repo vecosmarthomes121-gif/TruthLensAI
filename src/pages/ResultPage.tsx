@@ -330,7 +330,7 @@ export default function ResultPage() {
                   <VerdictBadge verdict={ia?.overallVerdict || va?.overallVerdict || 'UNCERTAIN'} />
                 )}
               </div>
-              <h1 className="text-2xl lg:text-3xl font-bold mb-4">{result.claim}</h1>
+              <h1 className="text-2xl lg:text-3xl font-bold mb-4 text-foreground">{result.claim}</h1>
               <div className="flex gap-3 flex-wrap">
                 <div className="relative">
                   <button onClick={handleShare} className="flex items-center gap-2 px-4 py-2 rounded-lg border hover:bg-accent transition-colors">
@@ -457,7 +457,7 @@ export default function ResultPage() {
                         {ia.detectionConfidence || 'LOW'} CONFIDENCE
                       </span>
                     </div>
-                    <p className="text-sm text-muted-foreground leading-relaxed mb-4">{ia.recommendation}</p>
+                    <p className="text-sm text-foreground/80 leading-relaxed mb-4">{ia.recommendation}</p>
 
                     {/* 3 engine summary badges */}
                     <div className="flex flex-wrap gap-2">
@@ -589,7 +589,7 @@ export default function ResultPage() {
               {/* ── Forensic AI report ── */}
               <div className="bg-card border rounded-xl p-6 md:col-span-2">
                 <h3 className="font-bold mb-3 text-base">Forensic Report</h3>
-                <p className="text-sm text-muted-foreground leading-relaxed mb-4">{result.contentAnalysis?.summary}</p>
+                <p className="text-sm text-foreground/80 leading-relaxed mb-4">{result.contentAnalysis?.summary}</p>
                 <div className="grid md:grid-cols-3 gap-4">
                   <AnomalyList items={ia.facialAnomalies || []} icon={AlertTriangle} label="Facial Anomalies" />
                   <AnomalyList items={ia.backgroundAnomalies || []} icon={AlertTriangle} label="Background Anomalies" />
@@ -647,26 +647,53 @@ export default function ResultPage() {
         )}
 
         {/* ── VIDEO DEEPFAKE ANALYSIS ────────────────────────────── */}
-        {va && (
+        {va && (() => {
+          const videoSuspicion = Math.min(
+            (va.deepfakeConfidence || 0) + (va.deepfakeRisk === 'HIGH' ? 20 : va.deepfakeRisk === 'MEDIUM' ? 10 : 0),
+            100
+          );
+          const videoVerdict =
+            videoSuspicion >= 75 ? 'HIGH CONFIDENCE DEEPFAKE' :
+            videoSuspicion >= 50 ? 'LIKELY MANIPULATED' :
+            videoSuspicion >= 25 ? 'INCONCLUSIVE' : 'LIKELY AUTHENTIC';
+          const videoSignals: string[] = [];
+          if (va.deepfakeDetected !== undefined)
+            videoSignals.push(`AI Analysis: deepfake ${va.deepfakeDetected ? 'DETECTED' : 'NOT detected'} — ${va.deepfakeConfidence ?? 0}% confidence`);
+          if (va.overallVerdict) videoSignals.push(`Overall verdict: ${va.overallVerdict}`);
+          if (va.deepfakeType && va.deepfakeType !== 'none') videoSignals.push(`Deepfake type: ${va.deepfakeType.replace(/-/g, ' ')}`);
+          if (va.voiceCloningRisk && va.voiceCloningRisk !== 'NONE') videoSignals.push(`Voice cloning risk: ${va.voiceCloningRisk}`);
+          if (va.isMisinformation) videoSignals.push(`Misinformation: ${va.misinformationDetails || 'Potentially misleading content'}`);
+          (va.facialAnomalies || []).forEach((a: string) => videoSignals.push(`Facial: ${a}`));
+          (va.audioAnomalies || []).forEach((a: string) => videoSignals.push(`Audio: ${a}`));
+          (va.temporalAnomalies || []).forEach((a: string) => videoSignals.push(`Motion: ${a}`));
+          return (
           <div className="mb-8">
-            {/* Alert banner */}
-            {(va.deepfakeDetected || va.deepfakeRisk === 'HIGH' || va.isMisinformation) && (
-              <div className="flex items-start gap-3 p-4 rounded-xl mb-5 border bg-red-50 border-red-200 text-red-800 dark:bg-red-950/20 dark:border-red-800">
+            {/* Color-coded risk banners */}
+            {(va.deepfakeRisk === 'HIGH' || va.deepfakeDetected) ? (
+              <div className="flex items-start gap-3 p-4 rounded-xl mb-5 border bg-red-50 dark:bg-red-950/20 border-red-200 dark:border-red-800 text-red-800 dark:text-red-200">
                 <ShieldAlert className="h-6 w-6 flex-shrink-0 mt-0.5" />
                 <div>
-                  <p className="font-bold text-base mb-0.5">
-                    {va.deepfakeDetected
-                      ? 'Deepfake Video Detected — This video may be synthetically generated or manipulated'
-                      : va.isMisinformation
-                      ? 'Misinformation Risk — This video content may contain false or misleading claims'
-                      : 'High Deepfake Risk — Treat this video with caution'}
-                  </p>
-                  <p className="text-sm opacity-90">
-                    {va.misinformationDetails || 'Verify the source before sharing this video.'}
-                  </p>
+                  <p className="font-bold text-base mb-0.5">Deepfake Detected — Do not trust this video without verifying independently</p>
+                  <p className="text-sm opacity-90">{va.misinformationDetails || 'This video shows strong signs of being AI-generated or digitally manipulated.'}</p>
                 </div>
               </div>
-            )}
+            ) : (va.deepfakeRisk === 'MEDIUM' || va.isMisinformation) ? (
+              <div className="flex items-start gap-3 p-4 rounded-xl mb-5 border bg-orange-50 dark:bg-orange-950/20 border-orange-200 dark:border-orange-800 text-orange-800 dark:text-orange-200">
+                <AlertTriangle className="h-6 w-6 flex-shrink-0 mt-0.5" />
+                <div>
+                  <p className="font-bold text-base mb-0.5">Medium Risk — Check the source before sharing</p>
+                  <p className="text-sm opacity-90">{va.misinformationDetails || 'Some manipulation indicators were detected.'}</p>
+                </div>
+              </div>
+            ) : va.deepfakeRisk === 'LOW' ? (
+              <div className="flex items-start gap-3 p-4 rounded-xl mb-5 border bg-yellow-50 dark:bg-yellow-950/20 border-yellow-200 dark:border-yellow-800 text-yellow-800 dark:text-yellow-200">
+                <AlertTriangle className="h-6 w-6 flex-shrink-0 mt-0.5" />
+                <div>
+                  <p className="font-bold text-base mb-0.5">Low Risk — Mostly clean but verify the source</p>
+                  <p className="text-sm opacity-90">Minor inconsistencies found. The video appears mostly authentic.</p>
+                </div>
+              </div>
+            ) : null}
 
             <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
               <Film className="h-5 w-5 text-primary" />
@@ -674,44 +701,66 @@ export default function ResultPage() {
             </h2>
 
             <div className="grid md:grid-cols-2 gap-5">
-              {/* Verdict + risk levels */}
-              <div className="bg-card border rounded-xl p-6">
-                <h3 className="font-bold mb-4 text-base">Detection Results</h3>
-                <div className="flex items-center gap-3 mb-5 flex-wrap">
-                  <VerdictBadge verdict={va.overallVerdict || 'UNCERTAIN'} />
-                  {va.platform && (
-                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-blue-100 text-blue-700 text-xs font-semibold">
-                      <VideoIcon className="h-3.5 w-3.5" /> {va.platform}
-                    </span>
-                  )}
-                </div>
-                <div className="space-y-1">
-                  {va.deepfakeRisk && <RiskBadge risk={va.deepfakeRisk} label="Deepfake Risk" />}
-                  {va.voiceCloningRisk && <RiskBadge risk={va.voiceCloningRisk} label="Voice Cloning Risk" />}
-                </div>
-                {va.authenticityScore !== undefined && (
-                  <div className="mt-4">
-                    <ConfidenceBar
-                      value={va.authenticityScore}
-                      label="Authenticity Score"
-                      color={va.authenticityScore >= 70 ? 'bg-green-500' : va.authenticityScore >= 40 ? 'bg-orange-500' : 'bg-red-500'}
-                    />
+              {/* Suspicion score ring */}
+              <div className="bg-card border rounded-xl p-6 md:col-span-2">
+                <div className="flex flex-col md:flex-row md:items-center gap-6">
+                  <div className="flex-shrink-0 flex flex-col items-center">
+                    <svg width="120" height="120" viewBox="0 0 120 120">
+                      <circle cx="60" cy="60" r="50" fill="none" stroke="#e5e7eb" strokeWidth="12"/>
+                      <circle cx="60" cy="60" r="50" fill="none"
+                        stroke={videoSuspicion >= 75 ? '#ef4444' : videoSuspicion >= 50 ? '#f97316' : videoSuspicion >= 25 ? '#eab308' : '#22c55e'}
+                        strokeWidth="12" strokeDasharray="314"
+                        strokeDashoffset={314 - (314 * videoSuspicion) / 100}
+                        strokeLinecap="round" transform="rotate(-90 60 60)"
+                      />
+                      <text x="60" y="55" textAnchor="middle" fill="currentColor" fontSize="24" fontWeight="800" fontFamily="sans-serif">{videoSuspicion}</text>
+                      <text x="60" y="72" textAnchor="middle" fill="#6b7280" fontSize="10" fontFamily="sans-serif">/ 100</text>
+                    </svg>
+                    <span className="text-xs text-muted-foreground mt-1 font-semibold">Suspicion Score</span>
                   </div>
-                )}
-                {va.deepfakeConfidence !== undefined && va.deepfakeConfidence > 0 && (
-                  <div className="mt-3">
-                    <ConfidenceBar value={va.deepfakeConfidence} label="Deepfake Confidence" color="bg-red-500" />
+                  <div className="flex-1">
+                    <div className="flex items-center gap-3 mb-3 flex-wrap">
+                      <span className={cn(
+                        'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-sm font-bold',
+                        videoSuspicion >= 75 ? 'bg-red-100 dark:bg-red-900/40 text-red-800 dark:text-red-200 border-red-300 dark:border-red-700' :
+                        videoSuspicion >= 50 ? 'bg-orange-100 dark:bg-orange-900/40 text-orange-800 dark:text-orange-200 border-orange-300 dark:border-orange-700' :
+                        videoSuspicion >= 25 ? 'bg-yellow-100 dark:bg-yellow-900/40 text-yellow-800 dark:text-yellow-200 border-yellow-300 dark:border-yellow-700' :
+                        'bg-green-100 dark:bg-green-900/40 text-green-800 dark:text-green-200 border-green-300 dark:border-green-700'
+                      )}>
+                        {videoSuspicion >= 50 ? <AlertOctagon className="h-4 w-4" /> : videoSuspicion >= 25 ? <AlertTriangle className="h-4 w-4" /> : <ShieldCheck className="h-4 w-4" />}
+                        {videoVerdict}
+                      </span>
+                      <VerdictBadge verdict={va.overallVerdict || 'UNCERTAIN'} />
+                      {va.platform && (
+                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 text-xs font-semibold">
+                          <VideoIcon className="h-3.5 w-3.5" /> {va.platform}
+                        </span>
+                      )}
+                    </div>
+                    <div className="space-y-1 mb-4">
+                      {va.deepfakeRisk && <RiskBadge risk={va.deepfakeRisk} label="Deepfake Risk" />}
+                      {va.voiceCloningRisk && va.voiceCloningRisk !== 'NONE' && <RiskBadge risk={va.voiceCloningRisk} label="Voice Cloning Risk" />}
+                    </div>
+                    {va.deepfakeConfidence !== undefined && (
+                      <ConfidenceBar value={va.deepfakeConfidence} label="Deepfake Confidence" color="bg-red-500" />
+                    )}
+                    {va.authenticityScore !== undefined && (
+                      <div className="mt-3">
+                        <ConfidenceBar value={va.authenticityScore} label="Authenticity Score"
+                          color={va.authenticityScore >= 70 ? 'bg-green-500' : va.authenticityScore >= 40 ? 'bg-orange-500' : 'bg-red-500'} />
+                      </div>
+                    )}
                   </div>
-                )}
+                </div>
               </div>
 
-              {/* Forensic details */}
+              {/* Forensic findings */}
               <div className="bg-card border rounded-xl p-6">
-                <h3 className="font-bold mb-4 text-base">Forensic Findings</h3>
+                <h3 className="font-bold mb-4 text-base text-foreground">Forensic Findings</h3>
                 {va.deepfakeType && va.deepfakeType !== 'none' && (
                   <div className="mb-4">
                     <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1">Deepfake Type</p>
-                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-red-100 text-red-700 text-sm font-semibold capitalize">
+                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-300 text-sm font-semibold capitalize">
                       {va.deepfakeType.replace(/-/g, ' ')}
                     </span>
                   </div>
@@ -720,19 +769,65 @@ export default function ResultPage() {
                 <AnomalyList items={va.audioAnomalies || []} icon={Mic} label="Audio / Voice Anomalies" />
                 <AnomalyList items={va.temporalAnomalies || []} icon={Film} label="Temporal / Motion Anomalies" />
                 {(!va.facialAnomalies?.length && !va.audioAnomalies?.length && !va.temporalAnomalies?.length) && (
-                  <div className="flex items-center gap-2 text-sm text-green-600">
+                  <div className="flex items-center gap-2 text-sm text-green-600 dark:text-green-400">
                     <CheckCircle className="h-4 w-4" /> No forensic anomalies detected
                   </div>
                 )}
               </div>
 
+              {/* Quick checks */}
+              <div className="bg-card border rounded-xl p-6">
+                <h3 className="font-bold mb-4 text-base text-foreground">Forensic Checks</h3>
+                <div className="space-y-0 divide-y dark:divide-gray-700">
+                  <div className="flex items-center justify-between py-2.5">
+                    <div className="flex items-center gap-2 text-sm text-foreground"><AlertOctagon className="h-4 w-4 text-muted-foreground" /> Deepfake Detected</div>
+                    {va.deepfakeDetected ? <span className="text-xs font-bold text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/40 px-2 py-1 rounded-full">YES</span> : <span className="text-xs font-bold text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-950/40 px-2 py-1 rounded-full">NO</span>}
+                  </div>
+                  <div className="flex items-center justify-between py-2.5">
+                    <div className="flex items-center gap-2 text-sm text-foreground"><Mic className="h-4 w-4 text-muted-foreground" /> Voice Cloning Risk</div>
+                    <span className={cn('text-xs font-bold px-2 py-1 rounded-full',
+                      va.voiceCloningRisk === 'HIGH' ? 'text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/40' :
+                      va.voiceCloningRisk === 'MEDIUM' ? 'text-orange-600 dark:text-orange-400 bg-orange-50 dark:bg-orange-950/40' :
+                      'text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-950/40'
+                    )}>{va.voiceCloningRisk || 'NONE'}</span>
+                  </div>
+                  <div className="flex items-center justify-between py-2.5">
+                    <div className="flex items-center gap-2 text-sm text-foreground"><AlertTriangle className="h-4 w-4 text-muted-foreground" /> Misinformation</div>
+                    {va.isMisinformation ? <span className="text-xs font-bold text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/40 px-2 py-1 rounded-full">FLAGGED</span> : <span className="text-xs font-bold text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-950/40 px-2 py-1 rounded-full">CLEAR</span>}
+                  </div>
+                </div>
+              </div>
+
+              {/* Signal log */}
+              {videoSignals.length > 0 && (
+                <div className="bg-card border rounded-xl p-6 md:col-span-2">
+                  <h3 className="font-bold mb-3 text-base flex items-center gap-2 text-foreground">
+                    <Activity className="h-4 w-4 text-primary" /> Detection Signal Log
+                  </h3>
+                  <div className="space-y-2">
+                    {videoSignals.map((signal: string, i: number) => (
+                      <div key={i} className={cn(
+                        'flex items-start gap-2.5 px-3 py-2 rounded-lg text-sm font-mono',
+                        signal.includes('DETECTED') || signal.includes('Misinformation') ? 'bg-red-50 dark:bg-red-950/40 text-red-800 dark:text-red-300' :
+                        signal.includes('NOT detected') || signal.includes('AUTHENTIC') ? 'bg-green-50 dark:bg-green-950/40 text-green-800 dark:text-green-300' :
+                        signal.includes('MEDIUM') || signal.includes('LOW') ? 'bg-yellow-50 dark:bg-yellow-950/40 text-yellow-800 dark:text-yellow-300' :
+                        'bg-blue-50 dark:bg-blue-950/40 text-blue-800 dark:text-blue-300'
+                      )}>
+                        <span className="flex-shrink-0 mt-0.5">{'›'}</span>
+                        <span>{signal}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               {/* Deepfake indicators */}
               {va.deepfakeIndicators && va.deepfakeIndicators.length > 0 && (
                 <div className="bg-card border rounded-xl p-6 md:col-span-2">
-                  <h3 className="font-bold mb-3 text-base">Deepfake Indicators</h3>
+                  <h3 className="font-bold mb-3 text-base text-foreground">Deepfake Indicators</h3>
                   <div className="flex flex-wrap gap-2">
                     {va.deepfakeIndicators.map((ind: string, i: number) => (
-                      <span key={i} className="inline-flex items-center gap-1 px-2.5 py-1 bg-red-50 text-red-700 rounded-full text-xs border border-red-200">
+                      <span key={i} className="inline-flex items-center gap-1 px-2.5 py-1 bg-red-50 dark:bg-red-950/40 text-red-700 dark:text-red-300 rounded-full text-xs border border-red-200 dark:border-red-800">
                         <AlertTriangle className="h-3 w-3" /> {ind}
                       </span>
                     ))}
@@ -743,18 +838,16 @@ export default function ResultPage() {
               {/* Summary */}
               {result.contentAnalysis?.summary && (
                 <div className="bg-card border rounded-xl p-6 md:col-span-2">
-                  <h3 className="font-bold mb-3 text-base">Analysis Summary</h3>
-                  <p className="text-sm text-muted-foreground leading-relaxed">
-                    {result.contentAnalysis.summary}
-                  </p>
+                  <h3 className="font-bold mb-3 text-base text-foreground">Analysis Summary</h3>
+                  <p className="text-sm text-foreground/80 leading-relaxed">{result.contentAnalysis.summary}</p>
                   {va.extractedClaims && va.extractedClaims.length > 0 && (
-                    <div className="mt-4 pt-4 border-t">
+                    <div className="mt-4 pt-4 border-t dark:border-gray-700">
                       <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">Extracted Claims</p>
                       <ul className="space-y-1.5">
                         {va.extractedClaims.map((c: string, i: number) => (
                           <li key={i} className="flex items-start gap-2 text-sm">
                             <div className="w-1.5 h-1.5 rounded-full bg-blue-600 flex-shrink-0 mt-2" />
-                            <span className="text-muted-foreground">{c}</span>
+                            <span className="text-foreground/80">{c}</span>
                           </li>
                         ))}
                       </ul>
@@ -764,7 +857,8 @@ export default function ResultPage() {
               )}
             </div>
           </div>
-        )}
+          );
+        })()}
 
         {/* ── AUDIO DEEPFAKE ANALYSIS ───────────────────────────── */}
         {aa && (
@@ -941,8 +1035,8 @@ export default function ResultPage() {
 
               {/* Summary */}
               <div className="bg-card border rounded-xl p-6 md:col-span-2">
-                <h3 className="font-bold mb-3 text-base">Summary</h3>
-                <p className="text-sm text-muted-foreground leading-relaxed">{result.contentAnalysis?.summary || result.explanation}</p>
+                <h3 className="font-bold mb-3 text-base text-foreground">Summary</h3>
+                <p className="text-sm text-foreground/80 leading-relaxed">{result.contentAnalysis?.summary || result.explanation}</p>
               </div>
             </div>
           </div>
@@ -951,21 +1045,21 @@ export default function ResultPage() {
         {/* ── URL Content Analysis ─────────────────────────────────── */}
         {result.contentAnalysis && !ia && !va && !aa && (
           <div className="mb-8">
-            <h2 className="text-xl font-bold mb-4">Content Analysis</h2>
+            <h2 className="text-xl font-bold mb-4 text-foreground">Content Analysis</h2>
             <div className="bg-gradient-to-br from-purple-50 dark:from-purple-950/30 to-blue-50 dark:to-blue-950/20 border border-purple-200 dark:border-purple-800 rounded-xl p-6">
               <div className="flex items-start gap-3 mb-4">
                 {result.contentAnalysis.contentType === 'article' && <FileText className="h-5 w-5 text-purple-600 flex-shrink-0 mt-0.5" />}
                 {result.contentAnalysis.contentType === 'image' && <ImageIcon className="h-5 w-5 text-purple-600 flex-shrink-0 mt-0.5" />}
                 {result.contentAnalysis.contentType === 'video' && <VideoIcon className="h-5 w-5 text-purple-600 flex-shrink-0 mt-0.5" />}
                 <div className="flex-1">
-                  <div className="text-sm font-semibold text-purple-700 mb-1 capitalize">
+                  <div className="text-sm font-semibold text-purple-700 dark:text-purple-300 mb-1 capitalize">
                     {result.contentAnalysis.contentType?.replace('-', ' ')} Content
                   </div>
-                  <p className="text-foreground/90 leading-relaxed">{result.contentAnalysis.summary}</p>
+                  <p className="text-foreground leading-relaxed">{result.contentAnalysis.summary}</p>
                   {result.contentAnalysis.mainClaim && (
-                    <div className="mt-3 pt-3 border-t border-purple-200">
-                      <span className="text-xs font-semibold text-purple-600">Extracted Claim: </span>
-                      <span className="text-sm italic">"{result.contentAnalysis.mainClaim}"</span>
+                    <div className="mt-3 pt-3 border-t border-purple-200 dark:border-purple-800">
+                      <span className="text-xs font-semibold text-purple-600 dark:text-purple-300">Extracted Claim: </span>
+                      <span className="text-sm italic text-foreground">"{result.contentAnalysis.mainClaim}"</span>
                     </div>
                   )}
                 </div>
@@ -994,15 +1088,15 @@ export default function ResultPage() {
 
         {/* ── Verification Explanation ─────────────────────────────── */}
         <div className="mb-8">
-          <h2 className="text-xl font-bold mb-4">Verification Analysis</h2>
+          <h2 className="text-xl font-bold mb-4 text-foreground">Verification Analysis</h2>
           <div className="bg-card border rounded-xl p-6">
-            <p className="text-foreground/90 leading-relaxed">{result.explanation}</p>
+            <p className="text-foreground leading-relaxed">{result.explanation}</p>
           </div>
         </div>
 
         {/* ── Sources ─────────────────────────────────────────────── */}
         <div className="mb-8">
-          <h2 className="text-xl font-bold mb-4">Source Evidence ({result.sources.length})</h2>
+          <h2 className="text-xl font-bold mb-4 text-foreground">Source Evidence ({result.sources.length})</h2>
           <div className="grid md:grid-cols-2 gap-4">
             {result.sources.map(source => (
               <SourceCard key={source.id} source={source} />
@@ -1013,11 +1107,11 @@ export default function ResultPage() {
         {/* ── Related Claims ───────────────────────────────────────── */}
         {result.relatedClaims.length > 0 && (
           <div className="mb-8">
-            <h2 className="text-xl font-bold mb-4">Related Claims</h2>
+            <h2 className="text-xl font-bold mb-4 text-foreground">Related Claims</h2>
             <div className="grid md:grid-cols-3 gap-4">
               {result.relatedClaims.map((claim, index) => (
                 <div key={`claim-${index}`} className="border rounded-lg p-4 hover:border-primary/50 transition-colors bg-card">
-                  <p className="text-sm mb-3 line-clamp-2">{claim.claim}</p>
+                  <p className="text-sm mb-3 line-clamp-2 text-foreground">{claim.claim}</p>
                   <div className="flex items-center gap-2">
                     <span className={cn('text-lg font-bold', claim.truthScore >= 60 ? 'text-green-600' : claim.truthScore >= 40 ? 'text-yellow-600' : 'text-red-600')}>
                       {claim.truthScore}%
@@ -1035,7 +1129,7 @@ export default function ResultPage() {
 
         {/* ── CTA ─────────────────────────────────────────────────── */}
         <div className="mt-12 text-center bg-muted/50 rounded-xl p-8">
-          <h3 className="text-lg font-semibold mb-2">Verify Another Claim</h3>
+          <h3 className="text-lg font-semibold mb-2 text-foreground">Verify Another Claim</h3>
           <p className="text-sm text-muted-foreground mb-4">Submit text, URLs, images, or videos for AI deepfake detection and fact-checking</p>
           <button onClick={() => navigate('/verify')} className="px-6 py-2 rounded-lg bg-gradient-to-r from-blue-600 to-purple-600 text-white font-semibold hover:shadow-lg transition-shadow">
             Start New Verification

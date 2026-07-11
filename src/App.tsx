@@ -17,6 +17,8 @@ import TemplatesPage from '@/pages/TemplatesPage';
 import ExtensionPage from '@/pages/ExtensionPage';
 import ApiAccessPage from '@/pages/ApiAccessPage';
 import AboutPage from '@/pages/AboutPage';
+import PrivacyPage from '@/pages/PrivacyPage';
+import TermsPage from '@/pages/TermsPage';
 import NotFoundPage from '@/pages/NotFoundPage';
 // Scroll restoration on route change
 function ScrollToTop() {
@@ -86,6 +88,8 @@ function App() {
             <Route path="/api" element={<ApiAccessPage />} />
             <Route path="/about" element={<AboutPage />} />
             <Route path="/history" element={<HistoryPage />} />
+            <Route path="/privacy" element={<PrivacyPage />} />
+            <Route path="/terms" element={<TermsPage />} />
             <Route path="*" element={<NotFoundPage />} />
           </Routes>
         </main>

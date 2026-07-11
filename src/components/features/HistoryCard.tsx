@@ -1,7 +1,7 @@
 import { useNavigate } from 'react-router-dom';
 import { VerificationResult } from '@/types';
 import { formatDate, getScoreColor, getStatusLabel } from '@/lib/utils';
-import { FileText, Link as LinkIcon, Image, Video, Trash2 } from 'lucide-react';
+import { FileText, Link as LinkIcon, Image, Video, Mic, Trash2, ShieldCheck, ShieldAlert, AlertTriangle } from 'lucide-react';
 import { useState } from 'react';
 
 interface HistoryCardProps {
@@ -14,14 +14,24 @@ export default function HistoryCard({ result, onDelete }: HistoryCardProps) {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deleting, setDeleting] = useState(false);
 
-  const inputIcons = {
+  const inputIcons: Record<string, any> = {
     text: FileText,
     url: LinkIcon,
     image: Image,
-    video: Video
+    video: Video,
+    audio: Mic,
   };
 
-  const InputIcon = inputIcons[result.inputType];
+  const InputIcon = inputIcons[result.inputType] ?? FileText;
+
+  const isAudio = result.inputType === 'audio';
+  const isImage = result.inputType === 'image';
+  const isVideo = result.inputType === 'video';
+  const isMedia = isAudio || isImage || isVideo;
+
+  // Extract Reality Defender verdict from contentAnalysis for audio
+  const rdVerdict: string | null = (result.contentAnalysis as any)?.audioAnalysis?.realityDefender?.result ?? null;
+  const suspicionScore: number | null = (result.contentAnalysis as any)?.audioAnalysis?.suspicionScore ?? (result.contentAnalysis as any)?.imageAnalysis?.suspicionScore ?? null;
 
   const handleClick = () => {
     navigate(`/result/${result.id}`);
@@ -54,28 +64,59 @@ export default function HistoryCard({ result, onDelete }: HistoryCardProps) {
         className="border rounded-lg p-4 hover:border-primary/50 transition-all cursor-pointer hover:shadow-md bg-card"
       >
         <div className="flex items-start gap-3">
-          <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
-            <InputIcon className="h-5 w-5 text-primary" />
+          <div className={`h-10 w-10 rounded-lg flex items-center justify-center flex-shrink-0 ${isAudio ? 'bg-violet-100 dark:bg-violet-900/40' : 'bg-primary/10'}`}>
+            <InputIcon className={`h-5 w-5 ${isAudio ? 'text-violet-600 dark:text-violet-400' : 'text-primary'}`} />
           </div>
           
           <div className="flex-1 min-w-0">
-            <h3 className="font-semibold text-sm mb-1 line-clamp-2">
+            <div className="flex items-center gap-2 mb-1 flex-wrap">
+              {isAudio && (
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-violet-100 dark:bg-violet-900/40 text-violet-700 dark:text-violet-300 text-xs font-bold border border-violet-200 dark:border-violet-700">
+                  <Mic className="h-3 w-3" /> Audio Deepfake
+                </span>
+              )}
+              {isImage && (
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 text-xs font-bold border border-blue-200 dark:border-blue-700">
+                  <Image className="h-3 w-3" /> Image Check
+                </span>
+              )}
+              {isVideo && (
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-pink-100 dark:bg-pink-900/40 text-pink-700 dark:text-pink-300 text-xs font-bold border border-pink-200 dark:border-pink-700">
+                  <Video className="h-3 w-3" /> Video Check
+                </span>
+              )}
+            </div>
+            <h3 className="font-semibold text-sm mb-1 line-clamp-2 text-foreground">
               {result.claim}
             </h3>
             <p className="text-xs text-muted-foreground mb-2">
               {formatDate(result.verifiedAt)}
             </p>
             
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-3 flex-wrap">
               <span className={`text-lg font-bold ${getScoreColor(result.truthScore)}`}>
                 {result.truthScore}%
               </span>
-              <span className="text-xs text-muted-foreground">
-                {getStatusLabel(result.status)}
-              </span>
-              <span className="text-xs text-muted-foreground">
-                {result.sources.length} sources
-              </span>
+              {/* Audio: show Reality Defender verdict instead of standard label */}
+              {isAudio && rdVerdict ? (
+                <span className={`inline-flex items-center gap-1 text-xs font-bold px-2 py-0.5 rounded-full ${
+                  rdVerdict === 'FAKE' ? 'bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-300' :
+                  rdVerdict === 'REAL' ? 'bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-300' :
+                  'bg-yellow-100 dark:bg-yellow-900/40 text-yellow-700 dark:text-yellow-300'
+                }`}>
+                  {rdVerdict === 'FAKE' ? <ShieldAlert className="h-3 w-3" /> : rdVerdict === 'REAL' ? <ShieldCheck className="h-3 w-3" /> : <AlertTriangle className="h-3 w-3" />}
+                  RD: {rdVerdict}
+                </span>
+              ) : (
+                <span className="text-xs text-muted-foreground">
+                  {isMedia && suspicionScore !== null ? `Suspicion: ${suspicionScore}/100` : getStatusLabel(result.status)}
+                </span>
+              )}
+              {!isMedia && (
+                <span className="text-xs text-muted-foreground">
+                  {result.sources.length} sources
+                </span>
+              )}
             </div>
           </div>
 
