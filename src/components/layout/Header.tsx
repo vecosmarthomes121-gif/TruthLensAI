@@ -50,17 +50,9 @@ export default function Header() {
               Trending
             </Link>
             {user && (
-              <>
-                <Link to="/dashboard" className="text-sm font-medium text-foreground/80 hover:text-foreground transition-colors">
-                  Dashboard
-                </Link>
-                <Link to="/teams" className="text-sm font-medium text-foreground/80 hover:text-foreground transition-colors">
-                  Teams
-                </Link>
-                <Link to="/templates" className="text-sm font-medium text-foreground/80 hover:text-foreground transition-colors">
-                  Templates
-                </Link>
-              </>
+              <Link to="/dashboard" className="text-sm font-medium text-foreground/80 hover:text-foreground transition-colors">
+                Dashboard
+              </Link>
             )}
             <Link to="/extension" className="text-sm font-medium text-foreground/80 hover:text-foreground transition-colors flex items-center gap-1">
               <Puzzle className="h-3.5 w-3.5" />
@@ -138,24 +130,7 @@ export default function Header() {
         {mobileMenuOpen && (
           <div className="md:hidden border-t bg-background">
             <nav className="container py-4 flex flex-col gap-1">
-              {user && (
-                <>
-                  <Link
-                    to="/teams"
-                    className="text-sm font-medium text-foreground/80 hover:text-foreground hover:bg-accent px-3 py-2.5 rounded-lg transition-colors"
-                    onClick={() => setMobileMenuOpen(false)}
-                  >
-                    Teams
-                  </Link>
-                  <Link
-                    to="/templates"
-                    className="text-sm font-medium text-foreground/80 hover:text-foreground hover:bg-accent px-3 py-2.5 rounded-lg transition-colors"
-                    onClick={() => setMobileMenuOpen(false)}
-                  >
-                    Templates
-                  </Link>
-                </>
-              )}
+
               <Link
                 to="/history"
                 className="text-sm font-medium text-foreground/80 hover:text-foreground hover:bg-accent px-3 py-2.5 rounded-lg transition-colors"

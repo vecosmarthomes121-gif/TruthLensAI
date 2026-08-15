@@ -5,7 +5,7 @@ import { VerificationResult } from '@/types';
 import TruthScore from '@/components/features/TruthScore';
 import SourceCard from '@/components/features/SourceCard';
 import ShareCard from '@/components/features/ShareCard';
-import VerificationComments from '@/components/features/VerificationComments';
+
 import {
   Share2, ArrowLeft, FileText, ExternalLink, Link as LinkIcon,
   Image as ImageIcon, Video as VideoIcon, Download, Loader2,
@@ -1123,9 +1123,6 @@ export default function ResultPage() {
             </div>
           </div>
         )}
-
-        {/* ── Team Comments ────────────────────────────────────────── */}
-        <VerificationComments verificationId={result.id} />
 
         {/* ── CTA ─────────────────────────────────────────────────── */}
         <div className="mt-12 text-center bg-muted/50 rounded-xl p-8">
